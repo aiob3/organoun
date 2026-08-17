@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "targets": [
+    {
+      "alias": "claude-onp",
+      "transport": "local",
+      "host": "local",
+      "cwd": "/workspace/project",
+      "mode": "adopted",
+      "tmux_target": "tmux:1.3",
+      "claude_session_id": null
+    },
+    {
+      "alias": "claude-managed",
+      "transport": "local",
+      "host": "local",
+      "cwd": "/workspace/project",
+      "mode": "managed",
+      "provider": "cc",
+      "session_name": "organoun-local",
+      "model": null
+    },
+    {
+      "alias": "remote-managed",
+      "transport": "ssh",
+      "host": "remote.example",
+      "cwd": "/workspace/remote",
+      "mode": "managed",
+      "provider": "cc",
+      "session_name": "organoun-remote",
+      "model": null
+    }
+  ]
+}

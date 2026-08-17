@@ -1,0 +1,4 @@
+interface:
+  display_name: "Organoun"
+  short_description: "Coordene Claude em panes locais visíveis"
+  default_prompt: "Use $organoun para inicializar, observar e enviar uma única demanda ao Claude pelo protocolo local visível."

@@ -1,0 +1,6 @@
+{
+  "schema_version": "1",
+  "local_project_root": "/absolute/local/project/root",
+  "remote_host": "operator-selected-ssh-alias",
+  "remote_cwd": "/absolute/remote/project/root"
+}

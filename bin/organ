@@ -1,0 +1,390 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+organ_path="$(readlink -f -- "${BASH_SOURCE[0]}")"
+organ_root="$(cd -- "$(dirname -- "$organ_path")/.." && pwd -P)"
+
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/common.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/deployment.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/config.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/claims.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/sessions.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/guard.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/artifacts.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/jobs.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/outsourcerer.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/local.sh"
+# shellcheck disable=SC1091
+source "$organ_root/lib/organ/control.sh"
+
+organ_config_error() {
+  local action="$1"
+  organ_emit_error "$action" "" "unknown" "CONFIG_INVALID" "configuration is missing or invalid"
+  exit 64
+}
+
+organ_target_error() {
+  local action="$1"
+  local alias="$2"
+  organ_emit_error "$action" "$alias" "unknown" "TARGET_NOT_FOUND" "target not found"
+  exit 64
+}
+
+organ_target_require() {
+  local action="$1"
+  local alias="$2"
+  local output_name="$3"
+  local resolved_target lookup_rc
+
+  if resolved_target="$(organ_target_get "$ORGAN_CONFIG" "$alias")"; then
+    printf -v "$output_name" '%s' "$resolved_target"
+    return 0
+  else
+    lookup_rc=$?
+  fi
+  if [[ "$lookup_rc" -eq 64 ]]; then
+    organ_config_error "$action"
+  fi
+  organ_target_error "$action" "$alias"
+}
+
+organ_usage_error() {
+  local action="$1"
+  organ_emit_error "$action" "" "unknown" "USAGE" "invalid command usage"
+  exit 64
+}
+
+organ_guard_error() {
+  local alias="$1"
+  local host="$2"
+  local rc="$3"
+  local code message
+
+  case "$rc" in
+    65) code=WORKTREE_INVALID; message='edit worktree must be an absolute canonical Git worktree root' ;;
+    66) code=WORKTREE_DIRTY; message='edit worktree must be clean before dispatch' ;;
+    67) code=ALLOW_INVALID; message='edit allow paths must be safe relative path components' ;;
+    68) code=VERIFY_REQUIRED; message='edit dispatch requires an explicit verification command' ;;
+    *) code=EDIT_PREPARE_FAILED; message='guarded edit preparation failed' ;;
+  esac
+  organ_emit_error dispatch "$alias" "$host" "$code" "$message"
+  exit 64
+}
+
+organ_job_error() {
+  local action="$1"
+  local job_id="$2"
+  local rc="$3"
+  local host=unknown code message exit_code=64
+
+  if organ_job_id_valid "$job_id"; then
+    host="${job_id%%.*}"
+  fi
+  if [[ "$rc" -eq 69 ]]; then
+    code=TRANSPORT_UNAVAILABLE
+    message='remote job transport is not available yet'
+    exit_code=69
+  elif [[ "$action" == verify ]]; then
+    case "$rc" in
+      65) code=JOB_NOT_EDIT; message='only edit jobs can be verified' ;;
+      66) code=VERIFY_FAILED; message='guarded verification could not be completed or persisted' ;;
+      67) code=DISPATCH_INCOMPLETE; message='edit dispatch has not completed its single send attempt' ;;
+      *) code=JOB_NOT_FOUND; message='job receipt is missing or invalid' ;;
+    esac
+  else
+    case "$rc" in
+      65) code=ARTIFACT_ID_INVALID; message='artifact ID is invalid' ;;
+      66) code=JOB_NOT_ACCEPTED; message='artifacts are available only from an accepted edit job' ;;
+      67) code=ARTIFACT_NOT_DECLARED; message='artifact is not declared by this job receipt' ;;
+      68) code=ARTIFACT_CONTAINMENT; message='artifact is no longer a contained regular file' ;;
+      74) code=ARTIFACT_READ_FAILED; message='artifact bytes could not be read' ;;
+      75) code=ARTIFACT_TOO_LARGE; message='artifact exceeds the fixed 1 MiB fetch limit' ;;
+      *) code=JOB_NOT_FOUND; message='job receipt is missing or invalid' ;;
+    esac
+  fi
+  organ_emit_error "$action" "" "$host" "$code" "$message"
+  exit "$exit_code"
+}
+
+# Sourced adapter functions resolve vendored runtime assets through this root.
+# shellcheck disable=SC2034
+ORGAN_ROOT="$organ_root"
+action="${1:-}"
+[[ -n "$action" ]] || organ_usage_error ""
+shift
+
+if [[ "$action" != onboard ]]; then
+  if ! organ_runtime_paths_init || ! ORGAN_DEPLOYMENT_DIGEST="$(organ_runtime_config_digest)"; then
+    organ_emit_error "$action" '' '' ONBOARD_REQUIRED 'run organ onboard from this project root before using Organoun'
+    exit 64
+  fi
+  if [[ "$action" != init ]] && ! organ_control_owner_live >/dev/null; then
+    organ_emit_error "$action" '' local INITIALIZATION_REQUIRED 'run organ init --json from the visible owner pane before using Organoun'
+    exit 64
+  fi
+fi
+
+case "$action" in
+  onboard)
+    if [[ "$#" -eq 0 ]]; then
+      exec "$organ_root/scripts/onboard-organoun.sh"
+    fi
+    [[ "$#" -eq 2 && "$1" == "--stdin" && "$2" == "--json" ]] || organ_usage_error "$action"
+    umask 077
+    onboarding_input="$(mktemp "${TMPDIR:-/tmp}/organoun-onboard-input.XXXXXX")"
+    trap 'rm -f -- "$onboarding_input"' EXIT
+    cat >"$onboarding_input"
+    organ_deployment_onboard "$onboarding_input"
+    rm -f -- "$onboarding_input"
+    trap - EXIT
+    ;;
+  init)
+    [[ "$#" -eq 1 && "$1" == "--json" ]] || organ_usage_error "$action"
+    organ_control_init "$ORGAN_DEPLOYMENT_DIGEST"
+    ;;
+  reserve)
+    [[ "$#" -eq 2 && "$2" == "--json" ]] || organ_usage_error "$action"
+    alias="$1"
+    target=''
+    organ_target_require "$action" "$alias" target
+    organ_control_reserve "$target"
+    ;;
+  enter)
+    [[ "$#" -eq 4 && "$2" == "--attest" && "$4" == "--json" ]] || organ_usage_error "$action"
+    alias="$1"
+    attestation_nonce="$3"
+    target=''
+    organ_target_require "$action" "$alias" target
+    organ_control_enter "$target" "$attestation_nonce"
+    ;;
+  close)
+    [[ "$#" -eq 2 && "$2" == "--json" ]] || organ_usage_error "$action"
+    alias="$1"
+    target=''
+    organ_target_require "$action" "$alias" target
+    organ_control_close "$target"
+    ;;
+  list)
+    [[ "$#" -eq 1 && "$1" == "--json" ]] || organ_usage_error "$action"
+    if ! targets="$(organ_targets_list "$ORGAN_CONFIG")"; then
+      organ_config_error "$action"
+    fi
+    data="$(jq -cn --argjson targets "$targets" '{targets:$targets}')"
+    organ_emit_ok "$action" "" "" "unknown" "not-applicable" "$data"
+    ;;
+  status|read)
+    [[ "$#" -eq 2 && "$2" == "--json" ]] || organ_usage_error "$action"
+    alias="$1"
+    target_json=''
+    organ_target_require "$action" "$alias" target_json
+    organ_route "$action" "$target_json" /dev/null '{}'
+    ;;
+  claim|release)
+    [[ "$#" -eq 2 && "$2" == "--json" ]] || organ_usage_error "$action"
+    alias="$1"
+    target=''
+    organ_target_require "$action" "$alias" target
+    organ_route "$action" "$target" /dev/null '{}'
+    ;;
+  ask)
+    [[ "$#" -eq 3 && "$2" == "--stdin" && "$3" == "--json" ]] || organ_usage_error "$action"
+    alias="$1"
+    target=''
+    organ_target_require "$action" "$alias" target
+    umask 077
+    payload_file="$(mktemp "${TMPDIR:-/tmp}/organoun-ask.XXXXXX")"
+    trap 'rm -f -- "$payload_file"' EXIT
+    cat >"$payload_file"
+    if (( $(wc -c <"$payload_file") > ORGAN_MAX_ASK_BYTES )); then
+      rm -f -- "$payload_file"
+      trap - EXIT
+      organ_emit_error "$action" "$alias" "$(jq -r '.host' <<<"$target")" "ASK_TOO_LARGE" "ask payload exceeds byte limit"
+      exit 64
+    fi
+    if ! organ_text_file_valid "$payload_file"; then
+      rm -f -- "$payload_file"
+      trap - EXIT
+      organ_emit_error "$action" "$alias" "$(jq -r '.host' <<<"$target")" "ASK_INVALID_TEXT" "ask payload must be NUL-free valid UTF-8 text"
+      exit 64
+    fi
+    organ_route "$action" "$target" "$payload_file" '{}'
+    rm -f -- "$payload_file"
+    trap - EXIT
+    ;;
+  dispatch)
+    [[ "$#" -ge 1 ]] || organ_usage_error "$action"
+    alias="$1"
+    shift
+    mode=''
+    worktree=''
+    verify_command=''
+    mode_seen=false
+    worktree_seen=false
+    verify_seen=false
+    stdin_seen=false
+    json_seen=false
+    allow_paths=()
+    while [[ "$#" -gt 0 ]]; do
+      case "$1" in
+        --mode)
+          [[ "$mode_seen" == false && "$#" -ge 2 ]] || organ_usage_error "$action"
+          mode="$2"
+          mode_seen=true
+          shift 2
+          ;;
+        --worktree)
+          [[ "$worktree_seen" == false && "$#" -ge 2 ]] || organ_usage_error "$action"
+          worktree="$2"
+          worktree_seen=true
+          shift 2
+          ;;
+        --allow)
+          [[ "$#" -ge 2 ]] || organ_usage_error "$action"
+          allow_paths+=("$2")
+          shift 2
+          ;;
+        --verify)
+          [[ "$verify_seen" == false && "$#" -ge 2 ]] || organ_usage_error "$action"
+          verify_command="$2"
+          verify_seen=true
+          shift 2
+          ;;
+        --stdin)
+          [[ "$stdin_seen" == false ]] || organ_usage_error "$action"
+          stdin_seen=true
+          shift
+          ;;
+        --json)
+          [[ "$json_seen" == false ]] || organ_usage_error "$action"
+          json_seen=true
+          shift
+          ;;
+        *) organ_usage_error "$action" ;;
+      esac
+    done
+    [[ "$mode_seen" == true && "$stdin_seen" == true && "$json_seen" == true ]] || organ_usage_error "$action"
+    [[ "$mode" == read || "$mode" == edit ]] || organ_usage_error "$action"
+    if [[ "$mode" == read ]]; then
+      [[ "$worktree_seen" == false && "$verify_seen" == false && "${#allow_paths[@]}" -eq 0 ]] || organ_usage_error "$action"
+    else
+      [[ "$worktree_seen" == true && "$verify_seen" == true && "${#allow_paths[@]}" -gt 0 ]] || organ_usage_error "$action"
+    fi
+    target=''
+    organ_target_require "$action" "$alias" target
+    if [[ "$(jq -r '.mode' <<<"$target")" != managed ]]; then
+      organ_emit_error "$action" "$alias" "$(jq -r '.host' <<<"$target")" "MANAGED_TARGET_REQUIRED" "dispatch requires a managed target"
+      exit 64
+    fi
+    umask 077
+    payload_file="$(mktemp "${TMPDIR:-/tmp}/organoun-dispatch.XXXXXX")"
+    trap 'rm -f -- "$payload_file"' EXIT
+    cat >"$payload_file"
+    if (( $(wc -c <"$payload_file") > ORGAN_MAX_ASK_BYTES )); then
+      rm -f -- "$payload_file"
+      trap - EXIT
+      organ_emit_error "$action" "$alias" "$(jq -r '.host' <<<"$target")" "DISPATCH_TOO_LARGE" "dispatch payload exceeds byte limit"
+      exit 64
+    fi
+    if ! organ_text_file_valid "$payload_file"; then
+      rm -f -- "$payload_file"
+      trap - EXIT
+      organ_emit_error "$action" "$alias" "$(jq -r '.host' <<<"$target")" "DISPATCH_INVALID_TEXT" "dispatch payload must be NUL-free valid UTF-8 text"
+      exit 64
+    fi
+    if [[ "$mode" == edit ]]; then
+      allow_json='[]'
+      for allowed_path in "${allow_paths[@]}"; do
+        allow_json="$(jq -cn --argjson allow "$allow_json" --arg path "$allowed_path" '$allow + [$path]')"
+      done
+      if [[ "$(jq -r '.transport' <<<"$target")" == ssh ]]; then
+        options_json="$(jq -cn --arg worktree "$worktree" --argjson allow "$allow_json" \
+          --arg verify_command "$verify_command" \
+          '{mode:"edit",edit:{worktree:$worktree,allow:$allow,verify_command:$verify_command}}')"
+      elif guard_json="$(organ_guard_prepare "$worktree" "$allow_json" "$verify_command")"; then
+        options_json="$(jq -cn --argjson guard "$guard_json" '{mode:"edit",guard:$guard}')"
+      else
+        guard_rc=$?
+        rm -f -- "$payload_file"
+        trap - EXIT
+        organ_guard_error "$alias" "$(jq -r '.host' <<<"$target")" "$guard_rc"
+      fi
+    else
+      options_json='{"mode":"read"}'
+    fi
+    organ_route "$action" "$target" "$payload_file" "$options_json"
+    rm -f -- "$payload_file"
+    trap - EXIT
+    ;;
+  verify)
+    [[ "$#" -eq 2 && "$2" == "--json" ]] || organ_usage_error "$action"
+    job_id="$1"
+    if ! organ_job_id_valid "$job_id"; then
+      organ_job_error "$action" "$job_id" 64
+    fi
+    if [[ "$(organ_job_route_class "$job_id")" == remote ]]; then
+      if organ_job_route verify "$job_id" '{}'; then
+        exit 0
+      else
+        exit $?
+      fi
+    fi
+    if organ_local_verify_job "$job_id"; then
+      :
+    else
+      job_rc=$?
+      organ_job_error "$action" "$job_id" "$job_rc"
+    fi
+    ;;
+  fetch)
+    [[ "$#" -eq 3 && ( "$3" == "--stdout" || "$3" == "--json" ) ]] || organ_usage_error "$action"
+    job_id="$1"
+    artifact_id="$2"
+    fetch_mode="${3#--}"
+    if ! organ_job_id_valid "$job_id"; then
+      organ_job_error "$action" "$job_id" 64
+    fi
+    if [[ "$(organ_job_route_class "$job_id")" == remote ]]; then
+      if organ_job_route fetch "$job_id" "$(jq -cn --arg artifact_id "$artifact_id" --arg mode "$fetch_mode" '{artifact_id:$artifact_id,mode:$mode}')"; then
+        exit 0
+      else
+        exit $?
+      fi
+    fi
+    if [[ "$fetch_mode" == json ]]; then
+      if organ_local_fetch_json "$job_id" "$artifact_id"; then
+        :
+      else
+        job_rc=$?
+        organ_job_error "$action" "$job_id" "$job_rc"
+      fi
+    else
+      fetch_options="$(jq -cn --arg artifact_id "$artifact_id" '{artifact_id:$artifact_id,mode:"stdout"}')"
+      if organ_job_route fetch "$job_id" "$fetch_options"; then
+        :
+      else
+        job_rc=$?
+        organ_job_error "$action" "$job_id" "$job_rc"
+      fi
+    fi
+    ;;
+  stop)
+    [[ "$#" -eq 2 && "$2" == "--json" ]] || organ_usage_error "$action"
+    alias="$1"
+    target=''
+    organ_target_require "$action" "$alias" target
+    organ_route "$action" "$target" /dev/null '{}'
+    ;;
+  *)
+    organ_usage_error "$action"
+    ;;
+esac

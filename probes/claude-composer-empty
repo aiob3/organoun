@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$#" -eq 1 ]] || { printf 'unknown\n'; exit 0; }
+pane="$1"
+[[ "$pane" =~ ^[A-Za-z0-9_.-]+:[0-9]+(\.[0-9]+)?$ ]] || { printf 'unknown\n'; exit 0; }
+
+if ! pane_output="$("${ORGAN_TMUX:-tmux}" capture-pane -p -t "$pane" -S -20)"; then
+  printf 'unknown\n'
+  exit 0
+fi
+last_line="${pane_output##*$'\n'}"
+if [[ "$last_line" =~ ^❯[[:space:]]*$ || "$last_line" =~ ^❯[[:space:]]+Try[[:space:]].*$ ]]; then
+  printf 'empty\n'
+else
+  printf 'unknown\n'
+fi

@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "targets": [
+    {
+      "alias": "claude_onp.1",
+      "transport": "local",
+      "host": "local",
+      "cwd": "/workspace/project",
+      "mode": "adopted",
+      "tmux_target": "tmux:1.3",
+      "claude_session_id": null
+    }
+  ]
+}

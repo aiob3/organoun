@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "review_id": "organoun-rfc-0001-codex-review-v1",
+  "reviewed_at": "2026-08-17T04:17:30Z",
+  "constitution_id": "organoun-constitution",
+  "constitution_version": "1.0.0",
+  "constitution_digest": "sha256:792cb21137c6a204e4beeee3b7504bfe926419ee8bab4018da9f09c58b36303f",
+  "artifact_digest": "sha256:55428781c0428b5c308d71dec6bf0e5f7d169c4b389cd0c0e7f2e396c1e0a9df",
+  "reviewer": "codex",
+  "verdict": "eligible-for-operator",
+  "unresolved_findings": [],
+  "review_authorizes_execution": false,
+  "operational_readiness": "blocked",
+  "checks": {
+    "onp_spec_parser": {
+      "result": "pass",
+      "version": "1.0.0",
+      "principles": 14,
+      "parse_issues": 0,
+      "must_principles_without_check": 0
+    },
+    "policy_json_strict": {
+      "result": "pass",
+      "utf8": "valid",
+      "duplicate_keys": "absent",
+      "json_values": 1
+    },
+    "policy_digest": {
+      "result": "pass",
+      "expected": "sha256:792cb21137c6a204e4beeee3b7504bfe926419ee8bab4018da9f09c58b36303f",
+      "observed": "sha256:792cb21137c6a204e4beeee3b7504bfe926419ee8bab4018da9f09c58b36303f"
+    },
+    "document_hygiene": {
+      "result": "pass",
+      "bound_derived_markdown": 9,
+      "invalid_distributed_records_marked_non_authoritative": true,
+      "competing_normative_document": false
+    },
+    "onp_spec_audit": {
+      "result": "expected-fail-closed",
+      "exit_code": 1,
+      "principles_without_proof": 13
+    },
+    "git_promotion": {
+      "result": "blocked",
+      "remote_configured": false,
+      "network_action_performed": false
+    }
+  },
+  "implementation_gates_open": [
+    {
+      "code": "CONSTITUTION_TESTS_REQUIRED",
+      "principles": [
+        "P-002",
+        "P-003",
+        "P-004",
+        "P-005",
+        "P-006",
+        "P-007",
+        "P-008",
+        "P-009",
+        "P-010",
+        "P-011",
+        "P-012",
+        "P-013",
+        "P-014"
+      ]
+    },
+    {
+      "code": "DERIVED_BINDING_IMPLEMENTATION_REQUIRED",
+      "artifacts": [
+        "skills/organoun/SKILL.md",
+        "config/deployment.example.json"
+      ]
+    },
+    {
+      "code": "RUNTIME_POLICY_GATE_REQUIRED"
+    },
+    {
+      "code": "WRITTEN_CONSTITUTION_APPROVAL_REQUIRED"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/alexgreensh/outsourcerer.git",
+  "tag": "v0.8.2",
+  "commit": "3a788b8e072b915622fd80c6f8ecec64de659bd5",
+  "upstream_script": "plugins/outsourcerer/skills/outsourcerer/scripts/outsourcerer.sh",
+  "vendored_script": "vendor/outsourcerer/outsourcerer.sh",
+  "script_sha256": "bcb4760cb66f1e971b9b909d36913ca6929cb95d7d3ccf8eb883cca5726cc984",
+  "license": "vendor/outsourcerer/LICENSE",
+  "license_sha256": "6bccffcb3545e3918832905c19db3be80e6cd1ce4c279093297ad93b1886b156"
+}
