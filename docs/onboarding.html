@@ -427,12 +427,12 @@
     <main>
       <div class="context" aria-label="Separação dos contextos">
         <div>
-          <strong>Máquina · uma vez</strong>
-          <p>O clone do Organoun instala CLI, runtime, skill e perfil Codex.</p>
+          <strong>Controladora · uma vez</strong>
+          <p>O host visível do operador recebe tmux, Codex, Organoun e o perfil dedicado.</p>
         </div>
         <div>
-          <strong>Projeto · quando necessário</strong>
-          <p>Cada repositório recebe seu próprio deployment local e ignorado pelo Git.</p>
+          <strong>Endpoint · via SSH</strong>
+          <p>O remoto recebe o trabalho do Claude; a ponte não instala outro Organoun ou tmux nele.</p>
         </div>
       </div>
 
@@ -480,7 +480,7 @@ git pull --ff-only
 export PATH="$HOME/.local/bin:$PATH"
 command -v organ</code></pre>
         </div>
-        <p class="muted"><code>--reinstall</code> exige a instalação Organoun anterior e também cria ou atualiza o perfil com o socket do tmux owner atual. A nova fonte é validada antes da troca e uma interrupção restaura a instalação anterior. Deployment de projeto, clone e configuração SSH permanecem intactos.</p>
+        <p class="muted"><code>--reinstall</code> exige a instalação Organoun anterior e sempre recria <code>~/.codex/organoun.config.toml</code> com o socket do tmux owner atual. Perfil ausente é criado e qualquer arquivo regular anterior nesse caminho exclusivo é substituído; não faça limpeza manual. Os demais perfis Codex permanecem intactos. A nova fonte é validada antes da troca e uma interrupção restaura a instalação anterior.</p>
         <div class="warning"><strong>Não execute <code>organ onboard</code> aqui.</strong> O checkout de instalação só guarda o código-fonte. Servidor, CWD remoto e raiz de projeto pertencem ao projeto-alvo.</div>
       </section>
 

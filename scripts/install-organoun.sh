@@ -39,10 +39,12 @@ With --apply:
 With --apply --reinstall:
   Require the existing runtime, CLI link, and skill to match the Organoun-owned
   destination topology. Stage and validate the pulled source first, replace the
-  installed runtime, skill, and dedicated Codex profile with same-filesystem
-  renames, keep the CLI link, and restore the previous installation if
-  publication is interrupted. Project deployments and the source checkout
-  remain untouched.
+  installed runtime and skill, reset HOME_ROOT/.codex/organoun.config.toml from
+  the current tmux owner, keep the CLI link, and restore the previous
+  installation if publication is interrupted. A missing dedicated profile is
+  recreated; any regular file at that exact Organoun-only path is replaced.
+  Other Codex profiles, project deployments, and the source checkout remain
+  untouched.
 
 After a successful apply (not performed automatically):
   export PATH="\$HOME/.local/bin:\$PATH"
@@ -189,18 +191,6 @@ profile_is_adoptable_legacy() {
   cmp -s -- "$codex_profile" <(render_legacy_codex_profile)
 }
 
-profile_is_marked_owned() {
-  local first_line=""
-  local second_line=""
-  [[ -f "$codex_profile" && ! -L "$codex_profile" ]] || return 1
-  {
-    IFS= read -r first_line || return 1
-    IFS= read -r second_line || return 1
-  } <"$codex_profile"
-  [[ "$first_line" == '# managed-by: organoun' && \
-     "$second_line" == '# organoun-profile-schema: 1' ]]
-}
-
 print_destinations() {
   printf '%s\n' "$share" "$cli_link" "$skill" "$codex_profile"
 }
@@ -294,8 +284,8 @@ assert_reinstallable() {
     return 64
   }
   if [[ -e "$codex_profile" || -L "$codex_profile" ]]; then
-    profile_is_marked_owned || profile_is_adoptable_legacy || {
-      printf 'reinstall refuses a Codex profile not proven Organoun-owned: %s\n' \
+    [[ -f "$codex_profile" && ! -L "$codex_profile" ]] || {
+      printf 'reinstall refuses an unsafe dedicated Codex profile path: %s\n' \
         "$codex_profile" >&2
       return 64
     }

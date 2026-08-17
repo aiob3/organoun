@@ -16,6 +16,11 @@ descreve o rito; somente os gates mecânicos e a autorização aplicável permit
 
 ## Instalação única na máquina e dentro do tmux owner
 
+“Máquina local” significa a controladora em que o operador observa e conduz o
+tmux e o Codex; ela pode ser uma estação ou um servidor de teste. O endpoint
+remoto recebe somente a conexão SSH e o trabalho do Claude, sem outra instalação
+Organoun ou tmux criada por esta ponte.
+
 Abra o terminal no diretório escolhido pelo operador para guardar o checkout.
 O clone cria a pasta `organoun` no diretório atual; o Organoun não escolhe nem
 cria um diretório-pai para o código-fonte:
@@ -63,9 +68,11 @@ command -v organ
 ```
 
 `--reinstall` exige `--apply` e comprova a topologia Organoun antes de substituir
-runtime, skill e perfil dedicado a partir de um staging validado. O link CLI é
-preservado. Falha durante a publicação restaura a instalação anterior;
-deployments de projeto, clone e configuração SSH não são tocados.
+runtime e skill a partir de um staging validado. Ele sempre recria somente
+`~/.codex/organoun.config.toml`: ausência é aceita e qualquer arquivo regular
+anterior nesse caminho dedicado é substituído. O link CLI e todos os demais
+perfis Codex são preservados. Falha durante a publicação restaura a instalação
+anterior; deployments de projeto, clone e configuração SSH não são tocados.
 
 O instalador publica o runtime, a skill e somente o perfil dedicado do Codex,
 mas não solicita raiz de projeto, alias SSH ou CWD remoto e não altera a

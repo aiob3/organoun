@@ -5,16 +5,18 @@ deve atuar recebe seu próprio onboarding local.
 
 ## Antes de começar
 
-Na máquina local, confirme:
+Na máquina controladora — o host em que o operador vê e conduz tmux e Codex —
+confirme:
 
 ```bash
 gh auth status
 command -v git jq tmux codex claude
 ```
 
-O endpoint remoto precisa ter somente acesso SSH autorizado, Claude autenticado
-e o diretório de trabalho escolhido. O Organoun e o tmux permanecem na máquina
-local do operador.
+Essa controladora pode ser uma estação ou um servidor de teste; “local” significa
+o lado owner da ponte, não proximidade física. O endpoint remoto precisa ter
+somente acesso SSH autorizado, Claude autenticado e o diretório de trabalho
+escolhido. Organoun, Codex e o tmux owner permanecem na controladora.
 
 ## 1. Clone, entre no tmux e instale uma vez
 
@@ -86,10 +88,12 @@ command -v organ
 ```
 
 `--reinstall` exige `--apply` e uma instalação anterior completa: runtime, link
-CLI exato e skill. Ele também cria ou atualiza o perfil persistente com o socket
-do tmux owner atual. A nova fonte é montada e verificada antes da troca; uma
-interrupção durante a publicação restaura a instalação anterior. Nenhum
-deployment de projeto, checkout ou configuração SSH é removido.
+CLI exato e skill. Ele sempre recria `~/.codex/organoun.config.toml` com o socket
+do tmux owner atual: perfil ausente é criado e qualquer arquivo regular anterior
+nesse caminho exclusivo do Organoun é substituído. Não faça limpeza manual. A
+nova fonte é montada e verificada antes da troca; uma interrupção restaura a
+instalação anterior. Nenhum outro perfil Codex, deployment de projeto, checkout
+ou configuração SSH é removido.
 
 Resultado esperado:
 

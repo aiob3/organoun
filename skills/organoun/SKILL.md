@@ -27,8 +27,9 @@ combine nem pule etapas:
 4. Se a consulta ao tmux falhar com `Operation not permitted` ou `Permission
    denied`, pare e instrua o operador a sair do Codex. No mesmo tmux owner
    visível, ele entra no checkout Organoun que escolheu, executa ajuda/dry-run e
-   `./scripts/install-organoun.sh --apply --reinstall`; depois retoma com
-   `codex --profile organoun`. Nunca instrua criação ou edição manual do perfil.
+   `./scripts/install-organoun.sh --apply --reinstall`; esse comando recria o
+   perfil dedicado mesmo se estiver ausente ou desatualizado. Depois retoma com
+   `codex --profile organoun`. Nunca instrua criação, edição ou remoção manual do perfil.
    Se uma política administrada ainda bloquear o socket exato, devolva esse
    bloqueio ao operador. Nunca recomende liberar `/tmp` inteiro nem usar
    `danger-full-access` como atalho.
