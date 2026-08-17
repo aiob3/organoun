@@ -23,10 +23,39 @@ cria um diretório-pai para o código-fonte:
 ```bash
 gh repo clone aiob3/organoun
 cd organoun
+./scripts/install-organoun.sh --help
+./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply
 export PATH="$HOME/.local/bin:$PATH"
 command -v organ
 ```
+
+`--help` descreve os efeitos; sem `--apply`, o comando somente imprime os três
+destinos e não escreve. Com `--apply`, ele valida, monta um staging e cria apenas
+o runtime em `~/.local/share/organoun`, o link CLI `~/.local/bin/organ` e a skill
+`~/.codex/skills/organoun`. Instalação idêntica é idempotente; colisão diferente
+ou insegura é recusada. O clone e os projetos não são modificados.
+
+O `export` altera somente o `PATH` do shell corrente e seus filhos, sem escrever
+arquivos. `command -v organ` deve então comprovar o executável efetivamente
+resolvido; resultado ausente ou diferente interrompe o rito antes do tmux.
+
+Para atualizar a partir do clone escolhido pelo operador, execute somente:
+
+```bash
+cd /caminho/escolhido/organoun
+git pull --ff-only
+./scripts/install-organoun.sh --help
+./scripts/install-organoun.sh
+./scripts/install-organoun.sh --apply --reinstall
+export PATH="$HOME/.local/bin:$PATH"
+command -v organ
+```
+
+`--reinstall` exige `--apply` e comprova a topologia exata dos três destinos
+Organoun antes de substituir runtime e skill a partir de um staging validado. O
+link CLI é preservado. Falha durante a publicação restaura a instalação anterior;
+deployments de projeto, clone e configuração SSH não são tocados.
 
 O instalador publica o runtime e a skill em `~/.local`, mas não solicita raiz de
 projeto, alias SSH ou CWD remoto e não cria configuração global. Não execute
@@ -37,9 +66,37 @@ deliberadamente o projeto-alvo.
 
 Execute sempre na raiz Git canônica e no pane local visível do operador.
 
+Antes de iniciar o Codex, derive o socket do tmux já visível com
+`tmux_socket="${TMUX%%,*}"` e confirme `test -S "$tmux_socket"`. O operador deve
+registrar somente esse caminho em `~/.codex/organoun.config.toml`, num perfil
+`organoun-local` que estenda `:workspace` e contenha:
+
+```toml
+approval_policy = "on-request"
+default_permissions = "organoun-local"
+
+[features]
+network_proxy = true
+
+[permissions.organoun-local]
+extends = ":workspace"
+
+[permissions.organoun-local.network]
+enabled = true
+
+[permissions.organoun-local.network.unix_sockets]
+"<TMUX_SOCKET_EXATO>" = "allow"
+```
+
+Inicie com `codex --profile organoun`. Não combine o perfil com `sandbox_mode`
+ou `[sandbox_workspace_write]`, não permita `/tmp` inteiro e não substitua esse
+gate por `danger-full-access`. Se uma política administrada impedir o socket,
+pare e devolva a correção dessa política ao operador.
+
 ```text
 organ ausente                    -> reinstalar a partir do checkout Organoun
 Codex fora do tmux owner visível -> sair, entrar no tmux e retomar o Codex
+socket tmux sem permissão         -> configurar perfil exato e parar
 deployment ausente ou inválido -> organ onboard
 deployment válido             -> organ init --json
 init válido                    -> reserve/enter/observe/send/close/release
@@ -51,8 +108,9 @@ o digest atual.
 Ao receber “inicialize o `$organoun` aqui”, o Codex verifica primeiro
 `command -v organ` e o contexto `TMUX`/`TMUX_PANE`. Se o Codex não tiver sido
 iniciado dentro da sessão tmux owner, ele orienta o operador a sair, iniciar ou
-entrar no tmux, executar `codex resume` ou iniciar uma nova sessão e repetir o
-pedido. Nenhuma sessão é criada por trás do operador.
+entrar no tmux, executar `codex --profile organoun resume` ou iniciar uma nova
+sessão com `codex --profile organoun` e repetir o pedido. Nenhuma sessão é criada
+por trás do operador.
 
 ### Primeira execução na raiz
 

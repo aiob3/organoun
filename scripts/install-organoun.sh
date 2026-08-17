@@ -7,9 +7,57 @@ prefix=""
 prefix_seen=false
 apply=false
 apply_seen=false
+reinstall=false
+reinstall_seen=false
+
+print_help() {
+  cat <<EOF
+Usage: ${0##*/} [--prefix HOME_ROOT] [--apply] [--reinstall]
+
+Install the Organoun CLI, runtime, and Codex skill for one local user.
+
+Default (without --apply):
+  Print the three exact destinations below and make no filesystem changes.
+
+With --apply:
+  Validate the source and every managed destination, stage and syntax-check the
+  runtime, then create only these missing Organoun-owned entries:
+    HOME_ROOT/.local/share/organoun   runtime, probes, config example, and vendor pin
+    HOME_ROOT/.local/bin/organ        relative symlink to the installed CLI
+    HOME_ROOT/.codex/skills/organoun  installed Codex skill
+
+  An identical existing installation is accepted. A conflicting or unsafe
+  destination is refused. The source checkout and project repositories are not
+  modified, and no project onboarding is performed.
+
+With --apply --reinstall:
+  Require the existing runtime, CLI link, and skill to match the Organoun-owned
+  destination topology. Stage and validate the pulled source first, replace only
+  the installed runtime and skill with same-filesystem renames, keep the CLI
+  link, and restore the previous installation if publication is interrupted.
+  Project deployments and the source checkout remain untouched.
+
+After a successful apply (not performed automatically):
+  export PATH="\$HOME/.local/bin:\$PATH"
+      Makes the installed CLI resolvable in the current shell and its children
+      only. It does not edit a shell startup file and ends with that shell.
+  command -v organ
+      Prints the exact executable the current shell will use. Stop if it does
+      not resolve to HOME_ROOT/.local/bin/organ.
+
+Options:
+  --prefix HOME_ROOT  Use this existing canonical directory as the home root.
+                      Default: the current HOME.
+  --apply             Perform the changes described above. Without this flag,
+                      the command is a dry run.
+  --reinstall         With --apply, replace a prior Organoun installation after
+                      validating its three exact managed destinations.
+  --help              Print this explanation and exit without changes.
+EOF
+}
 
 usage() {
-  printf 'usage: %s [--prefix HOME_ROOT] [--apply]\n' "${0##*/}" >&2
+  print_help >&2
   exit 64
 }
 
@@ -27,9 +75,24 @@ while [[ "$#" -gt 0 ]]; do
       apply_seen=true
       shift
       ;;
+    --reinstall)
+      [[ "$reinstall_seen" == false ]] || usage
+      reinstall=true
+      reinstall_seen=true
+      shift
+      ;;
+    --help)
+      print_help
+      exit 0
+      ;;
     *) usage ;;
   esac
 done
+
+[[ "$reinstall" == false || "$apply" == true ]] || {
+  printf '%s\n' '--reinstall requires --apply' >&2
+  usage
+}
 
 home_root="${prefix:-${HOME:-}}"
 [[ -n "$home_root" && "$home_root" == /* && "$home_root" != / ]] || {
@@ -129,9 +192,33 @@ skill_matches_source() {
   diff -qr -- "$repo_root/skills/organoun" "$skill" >/dev/null 2>&1
 }
 
+assert_reinstallable() {
+  [[ -d "$share" && ! -L "$share" ]] || {
+    printf 'reinstall requires the existing Organoun runtime: %s\n' "$share" >&2
+    return 64
+  }
+  [[ -d "$skill" && ! -L "$skill" ]] || {
+    printf 'reinstall requires the existing Organoun skill: %s\n' "$skill" >&2
+    return 64
+  }
+  [[ -L "$cli_link" && "$(readlink -- "$cli_link")" == '../share/organoun/bin/organ' ]] || {
+    printf 'reinstall requires the exact Organoun CLI link: %s\n' "$cli_link" >&2
+    return 64
+  }
+  [[ -f "$share/bin/organ" && ! -L "$share/bin/organ" && \
+     -f "$skill/SKILL.md" && ! -L "$skill/SKILL.md" ]] || {
+    printf 'reinstall refused an incomplete Organoun installation\n' >&2
+    return 64
+  }
+}
+
 preflight() {
   assert_safe_ancestors || return 64
   assert_relative_link_or_absent "$cli_link" '../share/organoun/bin/organ' || return 64
+  if [[ "$reinstall" == true ]]; then
+    assert_reinstallable || return 64
+    return 0
+  fi
   if [[ -e "$share" || -L "$share" ]]; then
     runtime_matches_source || {
       printf 'refusing existing share tree with different managed files: %s\n' "$share" >&2
@@ -159,6 +246,8 @@ stage=""
 share_created=false
 skill_created=false
 cli_created=false
+share_backup=""
+skill_backup=""
 complete=false
 
 cleanup() {
@@ -167,6 +256,12 @@ cleanup() {
     [[ "$cli_created" == false ]] || rm -f -- "$cli_link"
     [[ "$skill_created" == false ]] || rm -rf -- "$skill"
     [[ "$share_created" == false ]] || rm -rf -- "$share"
+    if [[ -n "$skill_backup" && -d "$skill_backup" && ! -e "$skill" && ! -L "$skill" ]]; then
+      mv -T -- "$skill_backup" "$skill"
+    fi
+    if [[ -n "$share_backup" && -d "$share_backup" && ! -e "$share" && ! -L "$share" ]]; then
+      mv -T -- "$share_backup" "$share"
+    fi
   fi
   [[ -z "$stage" ]] || rm -rf -- "$stage"
   rmdir -- "$lock_dir" 2>/dev/null || true
@@ -226,11 +321,20 @@ ensure_directory "$home_root/.local/bin" 755
 ensure_directory "$home_root/.codex" 755
 ensure_directory "$home_root/.codex/skills" 755
 
-if [[ ! -e "$share" && ! -L "$share" ]]; then
+if [[ "$reinstall" == true ]]; then
+  share_backup="$stage/previous-share"
+  skill_backup="$stage/previous-skill"
+  mv -T -- "$share" "$share_backup"
+  mv -T -- "$skill" "$skill_backup"
+  mv -T -- "$stage/share" "$share"
+  share_created=true
+  mv -T -- "$stage/skill" "$skill"
+  skill_created=true
+elif [[ ! -e "$share" && ! -L "$share" ]]; then
   mv -T -- "$stage/share" "$share"
   share_created=true
 fi
-if [[ ! -e "$skill" && ! -L "$skill" ]]; then
+if [[ "$reinstall" != true && ! -e "$skill" && ! -L "$skill" ]]; then
   mv -T -- "$stage/skill" "$skill"
   skill_created=true
 fi

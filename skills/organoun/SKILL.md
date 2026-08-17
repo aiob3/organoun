@@ -16,15 +16,26 @@ description: Use when the user asks Codex to “veja o Claude”, “pergunte ao
 Ao receber “inicialize o `$organoun` aqui”, execute esta receita na ordem. Não
 combine nem pule etapas:
 
-1. Execute `command -v organ` e `test -r "$HOME/.codex/skills/organoun/SKILL.md"` antes de `onboard`, `init`, `list` ou qualquer efeito. Se qualquer prova falhar, informe que a instalação local ou a skill está ausente e pare.
+1. Execute `command -v organ` e `test -r "$HOME/.codex/skills/organoun/SKILL.md"` antes de `onboard`, `init`, `list` ou qualquer efeito. Se qualquer prova falhar, informe que a instalação local ou a skill está ausente e pare. Ao orientar uma instalação, apresente primeiro `./scripts/install-organoun.sh --help`, depois o dry-run sem argumentos e explique os três destinos; use `--apply` somente após a decisão explícita do operador. Para uma atualização solicitada, entre no checkout escolhido pelo operador, use `git pull --ff-only` e repita ajuda/dry-run antes de `--apply --reinstall`; nunca presuma a localização do clone. Explique que `export PATH="$HOME/.local/bin:$PATH"` afeta apenas o shell atual e use `command -v organ` como comprovante, nunca como ação de instalação.
 2. Comprove o tmux antes de ler ou inspecionar o deployment: `TMUX` deve estar
    preenchido, `TMUX_PANE` deve corresponder a `^%[0-9]+$` e
    `tmux display-message -p -t "$TMUX_PANE" '#{pane_id}'` deve retornar exatamente
    o mesmo pane. Essa consulta é somente leitura e nunca cria painel.
-3. Se a prova de tmux falhar, instrua o operador a sair do Codex, iniciar ou entrar na sessão tmux que será o owner, iniciar `codex resume` ou uma nova sessão `codex` dentro dela e retomar o pedido. Pare; não abra outra sessão por conta própria.
-4. Resolva a raiz Git canônica corrente. Se o deployment estiver ausente, execute somente `organ onboard`, reporte `state=connected` e pare. Não execute `init` na mesma interação.
-5. Se o deployment for válido, execute `organ init --json` no pane local visível. `ONBOARD_REQUIRED` devolve o fluxo ao operador; nunca crie pane primeiro.
-6. Somente após recibo `state=initialized`, responda exatamente:
+3. Se `TMUX`/`TMUX_PANE` estiver ausente ou não identificar o pane, instrua o
+   operador a sair do Codex, iniciar ou entrar na sessão tmux owner e retomar com
+   `codex --profile organoun`. Pare; não abra outra sessão por conta própria.
+4. Se a consulta ao tmux falhar com `Operation not permitted` ou `Permission
+   denied`, derive o socket esperado exclusivamente de `${TMUX%%,*}` e instrua o
+   operador a permitir somente esse caminho em
+   `~/.codex/organoun.config.toml`, usando um perfil `organoun-local` que estenda
+   `:workspace`, habilite `features.network_proxy`, habilite a rede do perfil e
+   registre o caminho em
+   `[permissions.organoun-local.network.unix_sockets]`. Avise que perfis não se
+   combinam com `sandbox_mode`/`sandbox_workspace_write`. Pare. Nunca recomende
+   liberar `/tmp` inteiro nem usar `danger-full-access` como atalho.
+5. Resolva a raiz Git canônica corrente. Se o deployment estiver ausente, execute somente `organ onboard`, reporte `state=connected` e pare. Não execute `init` na mesma interação.
+6. Se o deployment for válido, execute `organ init --json` no pane local visível. `ONBOARD_REQUIRED` devolve o fluxo ao operador; nunca crie pane primeiro.
+7. Somente após recibo `state=initialized`, responda exatamente:
    `Organoun ativo nesta sessão. O que vamos criar hoje?` e devolva o controle.
 
 Qualquer erro de instalação, permissão ou visibilidade encerra a operação
