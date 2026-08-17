@@ -1,3 +1,11 @@
+---
+status: operator-approved
+governed_by: urn:organoun:rfc:0001
+governance_version: 1.1.0
+governance_digest: sha256:fc567587c7edcdee3f1b431003d00e60d72ed8f9249769b993dc2c73092d4586
+execution_authority: false
+---
+
 # Organoun Installation and Project Activation Design
 
 **Status:** operator-approved on 2026-08-17

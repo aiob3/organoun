@@ -14,11 +14,33 @@ execution_authority: false
 Leia primeiro a [Constituição Organoun/RFC-0001](../.spec/constituicao.md). Este runbook
 descreve o rito; somente os gates mecânicos e a autorização aplicável permitem efeitos.
 
-## Protocolo único de inicialização
+## Instalação única na máquina
+
+O checkout do Organoun é somente a fonte da instalação. Mantenha-o fora dos
+repositórios em que a ponte atuará:
+
+```bash
+mkdir -p "$HOME/.local/src"
+cd "$HOME/.local/src"
+gh repo clone aiob3/organoun
+cd organoun
+./scripts/install-organoun.sh --apply
+export PATH="$HOME/.local/bin:$PATH"
+command -v organ
+```
+
+O instalador publica o runtime e a skill em `~/.local`, mas não solicita raiz de
+projeto, alias SSH ou CWD remoto e não cria configuração global. Não execute
+`organ onboard` dentro desse checkout, exceto se o próprio Organoun for
+deliberadamente o projeto-alvo.
+
+## Protocolo por projeto
 
 Execute sempre na raiz Git canônica e no pane local visível do operador.
 
 ```text
+organ ausente                    -> reinstalar a partir do checkout Organoun
+Codex fora do tmux owner visível -> sair, entrar no tmux e retomar o Codex
 deployment ausente ou inválido -> organ onboard
 deployment válido             -> organ init --json
 init válido                    -> reserve/enter/observe/send/close/release
@@ -26,6 +48,12 @@ init válido                    -> reserve/enter/observe/send/close/release
 
 Nenhum pane, SSH, Claude, claim, dispatch ou evento paralelo começa antes de `init` para
 o digest atual.
+
+Ao receber “inicialize o `$organoun` aqui”, o Codex verifica primeiro
+`command -v organ` e o contexto `TMUX`/`TMUX_PANE`. Se o Codex não tiver sido
+iniciado dentro da sessão tmux owner, ele orienta o operador a sair, iniciar ou
+entrar no tmux, executar `codex resume` ou iniciar uma nova sessão e repetir o
+pedido. Nenhuma sessão é criada por trás do operador.
 
 ### Primeira execução na raiz
 
@@ -49,7 +77,8 @@ abrir conexão, protege o estado no `.gitignore` e publica uma vez:
 
 Sucesso produz um único envelope com `state=connected`, mensagem
 `Organoun Connected`, `submission_count=1` e `write_count=1`. O recibo não reproduz
-host nem caminhos absolutos.
+host nem caminhos absolutos. O Codex apresenta o recibo e para; não executa
+`init` na mesma interação.
 
 Se o deployment já existir, `onboard` recusa sobrescrita. Se a gravação ficar ambígua,
 não repita: inspecione o estado e obtenha nova intenção explícita.
@@ -64,20 +93,18 @@ organ init --json
 owner e comprova o pane/controlador visível. Deployment ausente, inválido, alterado ou
 pertencente a outra raiz retorna `ONBOARD_REQUIRED` antes de qualquer efeito.
 
+Depois de um recibo `state=initialized`, o Codex responde exatamente:
+
+```text
+Organoun ativo nesta sessão. O que vamos criar hoje?
+```
+
+Então devolve o controle ao operador.
+
 Uma raiz já onboarded nunca solicita nem grava novamente os três valores. Uma raiz nova
 recomeça obrigatoriamente por `organ onboard`.
 
-## Instalação local
-
-O instalador publica o runtime e a skill, mas não cria configuração global:
-
-```bash
-scripts/install-organoun.sh
-scripts/install-organoun.sh --apply
-```
-
-Depois da instalação, vá para a raiz do projeto e siga o protocolo único. Não existe
-fallback para `XDG_CONFIG_HOME` ou `XDG_STATE_HOME`.
+Não existe fallback para `XDG_CONFIG_HOME` ou `XDG_STATE_HOME`.
 
 ## Targets derivados
 
@@ -117,7 +144,7 @@ recibo Organoun válido comprova posse.
 | `ROUTE_INVALID` | Corrija o alias localmente e reinicie o onboarding mediante nova intenção. |
 | `VISIBLE_PANE_REQUIRED` | Pare; não crie transporte oculto nem contorne pelo tmux. |
 | `delivery=unknown` | Use somente `read`; nunca repita a obrigação. |
-| `blocked-verification` | Job terminal; informe o operador e não reexecute. |
+| `blocked-verification` | Esse job é terminal; não reexecute `organ verify` nem redespache/reapresente esse job. Somente uma nova intenção explícita e separadamente escopada pode criar trabalho novo. |
 
 Qualquer erro de permissão associado a uma tentativa de sessão paralela sem visibilidade
 encerra imediatamente o procedimento. Não há fallback oculto.
@@ -127,3 +154,12 @@ encerra imediatamente o procedimento. Não há fallback oculto.
 O deployment pertence ao operador e não é removido automaticamente. Um rollback de
 runtime pode remover somente paths comprovadamente instalados pelo Organoun; nunca
 remove `.organoun/deployment.json`, credenciais, Claude, tmux ou checkouts independentes.
+
+Depois de comprovar que cada destino ainda pertence à instalação Organoun, o escopo
+máximo de remoção é exatamente:
+
+```text
+$HOME/.local/bin/organ
+$HOME/.local/share/organoun
+$HOME/.codex/skills/organoun
+```

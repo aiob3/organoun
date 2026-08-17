@@ -77,6 +77,20 @@ assert_skill_contract() {
     'não reexecute .*verify.*nem redespache/reapresente esse job'
   assert_skill_pattern "$file" 'new work requires a separately scoped explicit intention' \
     'nova intenção explícita.*separadamente escopada.*trabalho novo'
+  assert_skill_pattern "$file" 'installation is checked before project activation' \
+    'command -v organ.*antes.*onboard.*init'
+  assert_skill_pattern "$file" 'installed skill is checked before project activation' \
+    'test -r .*\.codex/skills/organoun/SKILL\.md.*antes.*onboard.*init'
+  assert_skill_pattern "$file" 'tmux owner context is checked before deployment selection' \
+    'tmux.*antes de (ler|inspecionar).*deployment'
+  assert_skill_pattern "$file" 'missing tmux returns an explicit restart recipe' \
+    'sair do Codex.*iniciar ou entrar.*tmux.*retomar'
+  assert_skill_pattern "$file" 'new project runs only onboard and stops connected' \
+    'deployment.*ausente.*somente.*organ onboard.*state=connected.*pare'
+  assert_skill_pattern "$file" 'configured project runs init' \
+    'deployment.*válido.*organ init --json'
+  assert_skill_pattern "$file" 'initialized session returns the operator handoff sentence' \
+    'Organoun ativo nesta sessão\. O que vamos criar hoje\?'
 }
 
 assert_operations_verification_contract() {

@@ -1,3 +1,11 @@
+---
+status: operator-approved
+governed_by: urn:organoun:rfc:0001
+governance_version: 1.1.0
+governance_digest: sha256:fc567587c7edcdee3f1b431003d00e60d72ed8f9249769b993dc2c73092d4586
+execution_authority: false
+---
+
 # Organoun Installation and Project Activation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

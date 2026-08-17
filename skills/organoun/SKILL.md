@@ -13,17 +13,23 @@ description: Use when the user asks Codex to “veja o Claude”, “pergunte ao
 
 ## Gate de inicialização
 
-Antes de `list`, pane, SSH, Claude, claim, dispatch ou qualquer evento paralelo:
+Ao receber “inicialize o `$organoun` aqui”, execute esta receita na ordem. Não
+combine nem pule etapas:
 
-1. Resolva a raiz Git canônica corrente.
-2. Se `.organoun/deployment.json` estiver ausente ou inválido, obtenha do operador uma
-   única submissão com raiz local, alias SSH e CWD remoto; execute somente
-   `organ onboard`. Pare depois de `state=connected`.
-3. Se o deployment for válido, execute `organ init --json` no pane local visível. Só
-   prossiga após sucesso para o mesmo digest.
-4. `ONBOARD_REQUIRED` reinicia o rito por `onboard`; nunca crie pane primeiro.
-5. Qualquer erro de permissão ou visibilidade encerra a operação imediatamente. Informe
-   o operador; não tente fallback, outra sessão ou transporte oculto.
+1. Execute `command -v organ` e `test -r "$HOME/.codex/skills/organoun/SKILL.md"` antes de `onboard`, `init`, `list` ou qualquer efeito. Se qualquer prova falhar, informe que a instalação local ou a skill está ausente e pare.
+2. Comprove o tmux antes de ler ou inspecionar o deployment: `TMUX` deve estar
+   preenchido, `TMUX_PANE` deve corresponder a `^%[0-9]+$` e
+   `tmux display-message -p -t "$TMUX_PANE" '#{pane_id}'` deve retornar exatamente
+   o mesmo pane. Essa consulta é somente leitura e nunca cria painel.
+3. Se a prova de tmux falhar, instrua o operador a sair do Codex, iniciar ou entrar na sessão tmux que será o owner, iniciar `codex resume` ou uma nova sessão `codex` dentro dela e retomar o pedido. Pare; não abra outra sessão por conta própria.
+4. Resolva a raiz Git canônica corrente. Se o deployment estiver ausente, execute somente `organ onboard`, reporte `state=connected` e pare. Não execute `init` na mesma interação.
+5. Se o deployment for válido, execute `organ init --json` no pane local visível. `ONBOARD_REQUIRED` devolve o fluxo ao operador; nunca crie pane primeiro.
+6. Somente após recibo `state=initialized`, responda exatamente:
+   `Organoun ativo nesta sessão. O que vamos criar hoje?` e devolva o controle.
+
+Qualquer erro de instalação, permissão ou visibilidade encerra a operação
+imediatamente. Informe o operador; não tente fallback, outra sessão ou transporte
+oculto.
 
 Uma raiz onboarded reutiliza o arquivo na próxima janela e não solicita nem grava os
 três valores novamente.
