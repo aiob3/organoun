@@ -77,7 +77,7 @@ organ_deployment_route_check() (
   trap 'rm -rf -- "$capture_dir"' EXIT
   stdout_file="$capture_dir/stdout"
   stderr_file="$capture_dir/stderr"
-  if ! LC_ALL=C timeout --signal=TERM --kill-after=1s 5s ssh -G "$remote_host" \
+  if ! LC_ALL=C timeout --signal=TERM --kill-after=1s 5s ssh -G -T "$remote_host" \
       >"$stdout_file" 2>"$stderr_file"; then
     return 64
   fi
