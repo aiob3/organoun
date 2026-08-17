@@ -99,7 +99,7 @@ bloqueio, devolva a política administrada ao operador.
 organ ausente                    -> reinstalar a partir do checkout Organoun
 Codex fora do tmux owner visível -> sair, entrar no tmux e retomar o Codex
 socket tmux sem permissão         -> sair; reinstalar no tmux owner; parar
-deployment ausente ou inválido -> organ onboard
+deployment ausente ou inválido -> sair do Codex; operador executa organ onboard
 deployment válido             -> organ init --json
 init válido                    -> reserve/enter/observe/send/close/release
 ```
@@ -113,22 +113,30 @@ iniciado dentro da sessão tmux owner, ele orienta o operador a sair, iniciar ou
 entrar no tmux, executar `codex --profile organoun resume` ou iniciar uma nova
 sessão com `codex --profile organoun` e repetir o pedido. O perfil e o deployment
 são reutilizados; nenhuma configuração é refeita. Nenhuma sessão é criada por
-trás do operador.
+trás do operador. Se o deployment estiver ausente, o Codex manda o operador sair
+e para: somente o operador executa `organ onboard` no shell humano visível.
 
 ### Primeira execução na raiz
+
+Antes de abrir o Codex, na raiz canônica do projeto e no shell humano visível:
 
 ```bash
 organ onboard
 ```
 
-O frontend solicita uma vez:
+O comando detecta e exibe a raiz local. O operador informa somente o host/alias
+SSH sem `usuario@` e o CWD remoto. Os valores são exibidos e a rota é resolvida
+localmente com `ssh -G` antes da gravação. Nenhuma conexão SSH é aberta: o
+onboarding registra no projeto um acesso que o operador já comprovou.
 
-1. raiz local absoluta do projeto;
-2. alias SSH remoto;
-3. CWD remoto absoluto.
+O frontend detecta a raiz e solicita uma vez:
 
-Os três valores formam uma única submissão. O comando valida localmente a rota SSH sem
-abrir conexão, protege o estado no `.gitignore` e publica uma vez:
+1. host/alias SSH remoto sem `usuario@`;
+2. CWD remoto absoluto.
+
+A raiz detectada e os dois valores informados formam uma única submissão. O
+comando valida localmente a rota SSH sem abrir conexão, protege o estado no
+`.gitignore` e publica uma vez:
 
 ```text
 .organoun/deployment.json  mode 0600
@@ -137,8 +145,8 @@ abrir conexão, protege o estado no `.gitignore` e publica uma vez:
 
 Sucesso produz um único envelope com `state=connected`, mensagem
 `Organoun Connected`, `submission_count=1` e `write_count=1`. O recibo não reproduz
-host nem caminhos absolutos. O Codex apresenta o recibo e para; não executa
-`init` na mesma interação.
+host nem caminhos absolutos. O operador recebe o recibo no shell e somente então
+inicia ou retoma o Codex.
 
 Se o deployment já existir, `onboard` recusa sobrescrita. Se a gravação ficar ambígua,
 não repita: inspecione o estado e obtenha nova intenção explícita.
@@ -161,8 +169,8 @@ Organoun ativo nesta sessão. O que vamos criar hoje?
 
 Então devolve o controle ao operador.
 
-Uma raiz já onboarded nunca solicita nem grava novamente os três valores. Uma raiz nova
-recomeça obrigatoriamente por `organ onboard`.
+Uma raiz já onboarded nunca solicita nem grava novamente os valores. Uma raiz
+nova recomeça obrigatoriamente por `organ onboard`, fora do Codex.
 
 Não existe fallback para `XDG_CONFIG_HOME` ou `XDG_STATE_HOME`.
 

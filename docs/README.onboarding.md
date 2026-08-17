@@ -156,20 +156,23 @@ O Codex seguirá esta decisão:
 | `organ` ou a skill não estão instalados | Informar a ausência e parar. |
 | Codex não está dentro do tmux visível | Orientar a saída e a retomada dentro do tmux; parar. |
 | Socket tmux retorna `Operation not permitted` | Sair do Codex e reinstalar pelo checkout dentro do tmux owner; nunca editar o perfil manualmente nem recomendar acesso total. |
-| Projeto ainda não possui deployment | Executar somente `organ onboard`; apresentar o recibo e parar. |
+| Projeto ainda não possui deployment | Sair do Codex; o operador executa `organ onboard` no shell visível e só retorna após `state=connected`. |
 | Projeto já possui deployment válido | Executar `organ init --json`. |
 
 ## 5. Primeiro uso do projeto: onboarding
 
-Quando solicitado pelo `organ onboard`, o operador informa diretamente no
-terminal:
+Antes de abrir o Codex nesse projeto, o operador executa `organ onboard`
+diretamente no shell humano visível. O Codex nunca executa esse comando nem
+recebe os dados do deployment.
 
-1. **Local project root:** resultado exato de `pwd -P` na raiz do projeto;
-2. **Remote SSH alias:** alias já autorizado no `~/.ssh/config` local;
-3. **Remote CWD:** caminho absoluto em que o Claude trabalhará no endpoint.
+O Organoun detecta e exibe a **Local project root**. O operador informa somente:
 
-O onboarding apenas valida localmente a rota com `ssh -G`. Ele não abre conexão,
-não abre pane e não inicia Claude.
+1. **Remote SSH host/alias:** nome usado por `ssh`, sem `usuario@`;
+2. **Remote CWD:** caminho absoluto em que o Claude trabalhará no endpoint.
+
+O onboarding mostra os dois valores que serão registrados e valida localmente a
+resolução da rota com `ssh -G`. Ele não conecta ao endpoint, não comprova outra
+vez um acesso que o operador já realizou, não abre pane e não inicia Claude.
 
 Resultado esperado:
 
@@ -185,7 +188,9 @@ O projeto passa a conter somente dados locais ignorados pelo Git:
 .organoun/state/
 ```
 
-O Codex apresenta o recibo e para. Não executa `init` na mesma interação.
+Depois de `state=connected`, o operador inicia o Codex com o perfil Organoun. Se
+o Codex encontrar um projeto sem deployment, ele apenas orienta esse rito e
+para; não abre o onboarding por conta própria.
 
 ## 6. Ative o projeto
 

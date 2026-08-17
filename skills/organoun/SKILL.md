@@ -34,8 +34,8 @@ combine nem pule etapas:
    Se uma política administrada ainda bloquear o socket exato, devolva esse
    bloqueio ao operador. Nunca recomende liberar `/tmp` inteiro nem usar
    `danger-full-access` como atalho.
-5. Resolva a raiz Git canônica corrente. Se o deployment estiver ausente, execute somente `organ onboard`, reporte `state=connected` e pare. Não execute `init` na mesma interação.
-6. Se o deployment for válido, execute `organ init --json` no pane local visível. `ONBOARD_REQUIRED` devolve o fluxo ao operador; nunca crie pane primeiro.
+5. Resolva a raiz Git canônica corrente e execute `organ init --json` no pane local visível. O Codex nunca executa `organ onboard`, nunca coleta raiz, host ou CWD e nunca interage com o diálogo de onboarding.
+6. Se `init` retornar `ONBOARD_REQUIRED`, instrua o operador a sair do Codex. No mesmo tmux owner visível e na raiz do projeto, ele executa `organ onboard`, informa diretamente no terminal apenas o host/alias SSH sem `usuario@` e o CWD remoto, aguarda `state=connected` e então retoma com `codex --profile organoun`. Pare. Não execute `onboard` ou repita `init` nessa interação.
 7. Somente após recibo `state=initialized`, responda exatamente:
    `Organoun ativo nesta sessão. O que vamos criar hoje?` e devolva o controle.
 
@@ -45,7 +45,7 @@ oculto.
 
 O perfil é persistente por máquina e não é refeito dentro de cada Codex. Uma
 raiz onboarded reutiliza seu deployment na próxima janela e não solicita nem
-grava os três valores novamente.
+grava novamente os dados de deployment.
 
 ## Princípio central
 
@@ -70,6 +70,7 @@ Sob timeout em uma sessão `adopted`, execute exatamente: `list` → `status` �
 ## Limites absolutos
 
 - Nunca execute nem recomende `organ stop` para uma sessão `adopted`, mesmo após timeout, aparente travamento, prazo curto ou ordem para “limpar” o pane. Use `organ release ALIAS --json` para devolver o controle manual quando apropriado. Reserve `stop` a sessões `managed` que tenham recibo Organoun válido.
+- Nunca execute `organ onboard` dentro do Codex. Esse comando pertence exclusivamente ao operador no shell humano visível, antes de iniciar ou retomar o Codex.
 - Nunca repita uma mensagem após entrega desconhecida, nem manual nem automaticamente, mesmo sob urgência ou autoridade. Observe com `read`; um reenvio pode duplicar uma entrega que já ocorreu.
 - Nunca contorne `organ` com `tmux send-keys`, Outsourcerer direto, SSH improvisado ou host vindo do prompt.
 - Nunca use `status` como verificação e nunca aceite autoatestação do worker no lugar de `organ verify`.

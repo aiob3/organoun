@@ -522,7 +522,7 @@ git rev-parse --show-toplevel</code></pre>
             <tr><td><code>organ</code> ou skill ausentes</td><td>Informar a ausência e parar.</td></tr>
             <tr><td>Codex fora do tmux visível</td><td>Orientar saída e retomada dentro do tmux; parar.</td></tr>
             <tr><td>Socket tmux retorna <code>Operation not permitted</code></td><td>Sair do Codex e reinstalar pelo checkout dentro do tmux owner; nunca editar o perfil manualmente nem recomendar acesso total.</td></tr>
-            <tr><td>Deployment ausente</td><td>Executar somente <code>organ onboard</code>; apresentar o recibo e parar.</td></tr>
+            <tr><td>Deployment ausente</td><td>Sair do Codex; o operador executa <code>organ onboard</code> no shell visível e só retorna após <code>state=connected</code>.</td></tr>
             <tr><td>Deployment válido</td><td>Executar <code>organ init --json</code>.</td></tr>
           </tbody>
         </table>
@@ -531,15 +531,15 @@ git rev-parse --show-toplevel</code></pre>
       <section class="step" id="onboard">
         <span class="number" aria-hidden="true">5</span>
         <h2>Primeiro uso: onboard</h2>
-        <p>O operador informa diretamente no terminal:</p>
+        <p><strong>Antes de abrir o Codex nesse projeto</strong>, o operador executa <code>organ onboard</code> diretamente no shell humano visível. O Codex nunca executa esse comando nem recebe os dados do deployment.</p>
+        <p>O Organoun detecta e exibe a raiz local. O operador informa somente:</p>
         <ol>
-          <li><strong>Local project root:</strong> o resultado de <code>pwd -P</code> na raiz;</li>
-          <li><strong>Remote SSH alias:</strong> o alias autorizado no <code>~/.ssh/config</code> local;</li>
+          <li><strong>Remote SSH host/alias:</strong> o nome usado por <code>ssh</code>, sem <code>usuario@</code>;</li>
           <li><strong>Remote CWD:</strong> o caminho absoluto de trabalho no endpoint.</li>
         </ol>
-        <p>O onboarding usa <code>ssh -G</code> apenas para resolver a rota local. Não conecta, não abre pane e não inicia Claude.</p>
+        <p>O onboarding mostra os dois valores que serão registrados e valida localmente a resolução da rota com <code>ssh -G</code>. Não conecta ao endpoint, não comprova novamente um acesso que o operador já realizou, não abre pane e não inicia Claude.</p>
         <div class="receipt">state=connected<br>Organoun Connected</div>
-        <p>O projeto recebe <code>.organoun/deployment.json</code> e <code>.organoun/state/</code>, ambos ignorados pelo Git. O Codex apresenta o recibo e para; não executa <code>init</code> na mesma interação.</p>
+        <p>O projeto recebe <code>.organoun/deployment.json</code> e <code>.organoun/state/</code>, ambos ignorados pelo Git. Depois de <code>state=connected</code>, o operador inicia o Codex com o perfil Organoun. Se o deployment estiver ausente, o Codex orienta esse rito e para; nunca abre o onboarding.</p>
       </section>
 
       <section class="step" id="init">
