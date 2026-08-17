@@ -45,7 +45,8 @@ command -v organ
 destinos e não escreve. Com `--apply`, ele valida, monta um staging e cria apenas
 o runtime em `~/.local/share/organoun`, o link CLI `~/.local/bin/organ` e a skill
 `~/.codex/skills/organoun`, além do perfil persistente e privado
-`~/.codex/organoun.config.toml`, gerado com o socket exato do tmux owner.
+`~/.codex/organoun.config.toml`, gerado com acesso de filesystem e de rede Unix
+socket limitado ao socket exato do tmux owner, sem liberar `/tmp` inteiro.
 Instalação idêntica é idempotente; colisão diferente ou insegura é recusada. O
 clone e os projetos não são modificados. O operador nunca cria ou edita o perfil
 manualmente.
@@ -85,8 +86,9 @@ deliberadamente o projeto-alvo.
 Execute sempre na raiz Git canônica e no pane local visível do operador.
 
 O instalador já derivou o socket do tmux owner e publicou o perfil persistente
-`~/.codex/organoun.config.toml`. Inicie com `codex --profile organoun`; esse
-comando apenas seleciona o perfil existente e não recria configuração por
+`~/.codex/organoun.config.toml`, autorizando o mesmo caminho exato nas camadas
+de filesystem e de rede Unix socket. Inicie com `codex --profile organoun`;
+esse comando apenas seleciona o perfil existente e não recria configuração por
 sessão ou projeto. Não combine o perfil com `sandbox_mode` ou
 `[sandbox_workspace_write]`, não permita `/tmp` inteiro e não substitua esse gate
 por `danger-full-access`. Se uma política administrada impedir o socket, pare,

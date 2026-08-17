@@ -49,7 +49,9 @@ command -v organ
 - `~/.local/bin/organ`: link relativo para o CLI instalado;
 - `~/.codex/skills/organoun`: skill instalada do Codex;
 - `~/.codex/organoun.config.toml`: perfil persistente do Codex, restrito ao
-  socket exato do tmux owner em que a instalação foi executada.
+  socket exato do tmux owner em que a instalação foi executada. O mesmo caminho
+  é autorizado nas camadas de filesystem e de rede Unix socket; o diretório
+  `/tmp` inteiro não é liberado.
 
 O perfil é gerado automaticamente a partir de `TMUX`; o operador não cria nem
 edita esse arquivo. Ele persiste entre projetos e sessões Codex. O comando
@@ -88,12 +90,13 @@ command -v organ
 ```
 
 `--reinstall` exige `--apply` e uma instalação anterior completa: runtime, link
-CLI exato e skill. Ele sempre recria `~/.codex/organoun.config.toml` com o socket
-do tmux owner atual: perfil ausente é criado e qualquer arquivo regular anterior
-nesse caminho exclusivo do Organoun é substituído. Não faça limpeza manual. A
-nova fonte é montada e verificada antes da troca; uma interrupção restaura a
-instalação anterior. Nenhum outro perfil Codex, deployment de projeto, checkout
-ou configuração SSH é removido.
+CLI exato e skill. Ele sempre recria `~/.codex/organoun.config.toml` com acesso
+de filesystem e de rede Unix socket limitado ao socket do tmux owner atual:
+perfil ausente é criado e qualquer arquivo regular anterior nesse caminho
+exclusivo do Organoun é substituído. Não faça limpeza manual. A nova fonte é
+montada e verificada antes da troca; uma interrupção restaura a instalação
+anterior. Nenhum outro perfil Codex, deployment de projeto, checkout ou
+configuração SSH é removido.
 
 Resultado esperado:
 

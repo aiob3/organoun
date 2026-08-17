@@ -461,7 +461,7 @@ command -v organ</code></pre>
           <li><code>~/.local/share/organoun</code>: runtime, probes, exemplo de configuração e pin do vendor;</li>
           <li><code>~/.local/bin/organ</code>: link relativo para o CLI instalado;</li>
           <li><code>~/.codex/skills/organoun</code>: skill instalada do Codex;</li>
-          <li><code>~/.codex/organoun.config.toml</code>: perfil persistente do Codex, restrito ao socket exato do tmux owner.</li>
+          <li><code>~/.codex/organoun.config.toml</code>: perfil persistente do Codex, com acesso de filesystem e de rede Unix socket restrito ao socket exato do tmux owner; <code>/tmp</code> inteiro não é liberado.</li>
         </ul>
         <p>O instalador cria o perfil automaticamente a partir de <code>TMUX</code>. O operador não cria nem edita esse arquivo. Ele é reutilizado entre projetos e sessões; <code>codex --profile organoun</code> apenas seleciona o perfil existente.</p>
         <p class="muted">Uma instalação idêntica é aceita; destino diferente ou inseguro é recusado. O comando não modifica o clone, outro repositório ou o onboarding de projeto.</p>
@@ -480,7 +480,7 @@ git pull --ff-only
 export PATH="$HOME/.local/bin:$PATH"
 command -v organ</code></pre>
         </div>
-        <p class="muted"><code>--reinstall</code> exige a instalação Organoun anterior e sempre recria <code>~/.codex/organoun.config.toml</code> com o socket do tmux owner atual. Perfil ausente é criado e qualquer arquivo regular anterior nesse caminho exclusivo é substituído; não faça limpeza manual. Os demais perfis Codex permanecem intactos. A nova fonte é validada antes da troca e uma interrupção restaura a instalação anterior.</p>
+        <p class="muted"><code>--reinstall</code> exige a instalação Organoun anterior e sempre recria <code>~/.codex/organoun.config.toml</code> com acesso de filesystem e de rede Unix socket limitado ao socket do tmux owner atual. Perfil ausente é criado e qualquer arquivo regular anterior nesse caminho exclusivo é substituído; não faça limpeza manual. Os demais perfis Codex permanecem intactos. A nova fonte é validada antes da troca e uma interrupção restaura a instalação anterior.</p>
         <div class="warning"><strong>Não execute <code>organ onboard</code> aqui.</strong> O checkout de instalação só guarda o código-fonte. Servidor, CWD remoto e raiz de projeto pertencem ao projeto-alvo.</div>
       </section>
 

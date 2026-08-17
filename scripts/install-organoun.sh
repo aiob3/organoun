@@ -31,6 +31,8 @@ With --apply:
     HOME_ROOT/.codex/organoun.config.toml
                                        persistent profile restricted to the
                                        exact socket of the current tmux owner
+                                       in filesystem and Unix-socket layers
+                                       without granting all of /tmp
 
   An identical existing installation is accepted. A conflicting or unsafe
   destination is refused. The source checkout and project repositories are not
@@ -159,7 +161,7 @@ codex_profile="$home_root/.codex/organoun.config.toml"
 render_codex_profile() {
   printf '%s\n' \
     '# managed-by: organoun' \
-    '# organoun-profile-schema: 1' \
+    '# organoun-profile-schema: 2' \
     'approval_policy = "on-request"' \
     'default_permissions = "organoun-local"' \
     '' \
@@ -167,8 +169,12 @@ render_codex_profile() {
     'network_proxy = true' \
     '' \
     '[permissions.organoun-local]' \
-    'description = "Workspace e socket tmux exato para o Organoun"' \
+    'description = "Workspace e acesso exato ao socket tmux do Organoun"' \
     'extends = ":workspace"' \
+    '' \
+    '[permissions.organoun-local.filesystem]'
+  printf '"%s" = "write"\n' "$tmux_socket"
+  printf '%s\n' \
     '' \
     '[permissions.organoun-local.network]' \
     'enabled = true' \
