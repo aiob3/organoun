@@ -20,10 +20,12 @@ must operate.
 
 ### Machine installation
 
-From a dedicated source checkout outside application repositories, the operator
-runs `./scripts/install-organoun.sh --apply`. This publishes the CLI, runtime,
-and Codex skill under the operator's home. It does not collect a host, remote
-CWD, or project root and does not create `.organoun/` in the source checkout.
+From a source checkout cloned in any directory chosen by the operator, the
+operator runs `./scripts/install-organoun.sh --apply`. Organoun does not select
+or create the checkout's parent directory. The installer publishes the CLI,
+runtime, and Codex skill under the operator's home. It does not collect a host,
+remote CWD, or project root and does not create `.organoun/` in the source
+checkout.
 
 ### Project activation
 

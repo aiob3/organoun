@@ -439,12 +439,10 @@
       <section class="step" id="instalar">
         <span class="number" aria-hidden="true">1</span>
         <h2>Instale o Organoun uma vez</h2>
-        <p>Abra um terminal. O checkout abaixo é apenas a fonte de instalação e deve ficar fora dos seus projetos.</p>
+        <p>Abra um terminal no diretório em que você escolheu guardar o checkout. O clone cria a pasta <code>organoun</code> no diretório atual; o Organoun não impõe uma localização.</p>
         <div class="command">
           <button class="copy" type="button" data-copy="install-command">Copiar</button>
-          <pre id="install-command"><code>mkdir -p "$HOME/.local/src"
-cd "$HOME/.local/src"
-gh repo clone aiob3/organoun
+          <pre id="install-command"><code>gh repo clone aiob3/organoun
 cd organoun
 ./scripts/install-organoun.sh --apply
 export PATH="$HOME/.local/bin:$PATH"

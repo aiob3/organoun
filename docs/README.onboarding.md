@@ -18,12 +18,10 @@ local do operador.
 
 ## 1. Instale o Organoun uma vez
 
-Abra um terminal. O checkout abaixo é a fonte de instalação; mantenha-o fora dos
-seus projetos:
+Abra um terminal no diretório em que você escolheu guardar o checkout. O clone
+cria a pasta `organoun` no diretório atual; o Organoun não impõe uma localização:
 
 ```bash
-mkdir -p "$HOME/.local/src"
-cd "$HOME/.local/src"
 gh repo clone aiob3/organoun
 cd organoun
 ./scripts/install-organoun.sh --apply

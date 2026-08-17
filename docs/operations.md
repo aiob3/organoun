@@ -16,12 +16,11 @@ descreve o rito; somente os gates mecânicos e a autorização aplicável permit
 
 ## Instalação única na máquina
 
-O checkout do Organoun é somente a fonte da instalação. Mantenha-o fora dos
-repositórios em que a ponte atuará:
+Abra o terminal no diretório escolhido pelo operador para guardar o checkout.
+O clone cria a pasta `organoun` no diretório atual; o Organoun não escolhe nem
+cria um diretório-pai para o código-fonte:
 
 ```bash
-mkdir -p "$HOME/.local/src"
-cd "$HOME/.local/src"
 gh repo clone aiob3/organoun
 cd organoun
 ./scripts/install-organoun.sh --apply

@@ -19,6 +19,8 @@ execution_authority: false
 ## Global Constraints
 
 - No pane, SSH connection, Claude process, or parallel event is created by this change.
+- The operator chooses the source checkout directory; no guide or command creates
+  or imposes a parent directory for it.
 - Installation never collects project routing data.
 - Onboarding data stays project-local and Git-ignored.
 - `organ onboard` and `organ init --json` remain mutually exclusive actions in one interaction.
