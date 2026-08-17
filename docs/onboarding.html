@@ -416,7 +416,7 @@
       <ol>
         <li><a href="#instalar">1. Instalar</a></li>
         <li><a href="#projeto">2. Entrar no projeto</a></li>
-        <li><a href="#tmux">3. Iniciar tmux</a></li>
+        <li><a href="#tmux">3. Iniciar Codex</a></li>
         <li><a href="#chamada">4. Chamar no Codex</a></li>
         <li><a href="#onboard">5. Onboard</a></li>
         <li><a href="#init">6. Init</a></li>
@@ -428,7 +428,7 @@
       <div class="context" aria-label="Separação dos contextos">
         <div>
           <strong>Máquina · uma vez</strong>
-          <p>O clone do Organoun instala CLI, runtime e skill.</p>
+          <p>O clone do Organoun instala CLI, runtime, skill e perfil Codex.</p>
         </div>
         <div>
           <strong>Projeto · quando necessário</strong>
@@ -438,31 +438,38 @@
 
       <section class="step" id="instalar">
         <span class="number" aria-hidden="true">1</span>
-        <h2>Instale o Organoun uma vez</h2>
+        <h2>Clone, entre no tmux e instale uma vez</h2>
         <p>Abra um terminal no diretório em que você escolheu guardar o checkout. O clone cria a pasta <code>organoun</code> no diretório atual; o Organoun não impõe uma localização.</p>
         <div class="command">
           <button class="copy" type="button" data-copy="install-command">Copiar</button>
           <pre id="install-command"><code>gh repo clone aiob3/organoun
 cd organoun
-./scripts/install-organoun.sh --help
+tmux new -s organoun</code></pre>
+        </div>
+        <p>Se já estiver dentro do tmux que será o owner visível, não crie outro. Dentro dessa sessão, execute:</p>
+        <div class="command">
+          <button class="copy" type="button" data-copy="install-apply-command">Copiar</button>
+          <pre id="install-apply-command"><code>./scripts/install-organoun.sh --help
 ./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply
 export PATH="$HOME/.local/bin:$PATH"
 command -v organ</code></pre>
         </div>
-        <p><code>--help</code> explica o contrato antes de qualquer alteração. A execução sem <code>--apply</code> é o dry-run: não escreve nada e mostra os três destinos exatos.</p>
+        <p><code>--help</code> explica o contrato antes de qualquer alteração. A execução sem <code>--apply</code> comprova o tmux e faz o dry-run: não escreve nada e mostra os quatro destinos exatos.</p>
         <p>Somente <code>--apply</code> autoriza, após validação e staging, a criação de:</p>
         <ul>
           <li><code>~/.local/share/organoun</code>: runtime, probes, exemplo de configuração e pin do vendor;</li>
           <li><code>~/.local/bin/organ</code>: link relativo para o CLI instalado;</li>
-          <li><code>~/.codex/skills/organoun</code>: skill instalada do Codex.</li>
+          <li><code>~/.codex/skills/organoun</code>: skill instalada do Codex;</li>
+          <li><code>~/.codex/organoun.config.toml</code>: perfil persistente do Codex, restrito ao socket exato do tmux owner.</li>
         </ul>
+        <p>O instalador cria o perfil automaticamente a partir de <code>TMUX</code>. O operador não cria nem edita esse arquivo. Ele é reutilizado entre projetos e sessões; <code>codex --profile organoun</code> apenas seleciona o perfil existente.</p>
         <p class="muted">Uma instalação idêntica é aceita; destino diferente ou inseguro é recusado. O comando não modifica o clone, outro repositório ou o onboarding de projeto.</p>
         <p><code>export PATH="$HOME/.local/bin:$PATH"</code> altera somente o shell atual e seus filhos; não escreve arquivos e deixa de valer quando o shell termina. Persistir o PATH é uma escolha do operador no seu próprio shell.</p>
-        <p><code>command -v organ</code> comprova qual executável o shell usará. Se não imprimir o caminho instalado, pare antes de iniciar o tmux.</p>
+        <p><code>command -v organ</code> comprova qual executável o shell usará. Se não imprimir o caminho instalado, pare.</p>
         <p class="muted">Resultado esperado: <code>/home/SEU_USUARIO/.local/bin/organ</code>.</p>
         <h3>Se o Organoun já estiver instalado</h3>
-        <p>Entre no clone que você decidiu manter; nenhuma localização é presumida. Atualize por avanço linear, releia a ajuda e observe o dry-run antes de autorizar a reinstalação.</p>
+        <p>Entre no clone que você decidiu manter e inicie ou entre no tmux owner visível; nenhuma localização é presumida. Já dentro dele, atualize por avanço linear, releia a ajuda e observe o dry-run antes de autorizar a reinstalação.</p>
         <div class="command">
           <button class="copy" type="button" data-copy="reinstall-command">Copiar</button>
           <pre id="reinstall-command"><code>cd /caminho/escolhido/organoun
@@ -473,7 +480,7 @@ git pull --ff-only
 export PATH="$HOME/.local/bin:$PATH"
 command -v organ</code></pre>
         </div>
-        <p class="muted"><code>--reinstall</code> exige os três destinos Organoun completos. A nova fonte é validada antes da troca e uma interrupção restaura a instalação anterior. Deployment de projeto, clone e configuração SSH permanecem intactos.</p>
+        <p class="muted"><code>--reinstall</code> exige a instalação Organoun anterior e também cria ou atualiza o perfil com o socket do tmux owner atual. A nova fonte é validada antes da troca e uma interrupção restaura a instalação anterior. Deployment de projeto, clone e configuração SSH permanecem intactos.</p>
         <div class="warning"><strong>Não execute <code>organ onboard</code> aqui.</strong> O checkout de instalação só guarda o código-fonte. Servidor, CWD remoto e raiz de projeto pertencem ao projeto-alvo.</div>
       </section>
 
@@ -491,41 +498,14 @@ git rev-parse --show-toplevel</code></pre>
 
       <section class="step" id="tmux">
         <span class="number" aria-hidden="true">3</span>
-        <h2>Inicie o tmux antes do Codex</h2>
-        <p>Se ainda não estiver dentro de uma sessão tmux, crie a sessão que será o owner visível.</p>
-        <div class="command">
-          <button class="copy" type="button" data-copy="tmux-command">Copiar</button>
-          <pre id="tmux-command"><code>tmux new -s calculadora</code></pre>
-        </div>
-        <p>Já dentro do tmux, descubra o socket exato da sessão.</p>
-        <div class="command">
-          <button class="copy" type="button" data-copy="tmux-socket-command">Copiar</button>
-          <pre id="tmux-socket-command"><code>tmux_socket="${TMUX%%,*}"
-test -S "$tmux_socket"
-printf 'TMUX_SOCKET=%s\n' "$tmux_socket"</code></pre>
-        </div>
-        <p>Crie ou edite <code>~/.codex/organoun.config.toml</code> e substitua <code>&lt;TMUX_SOCKET_EXATO&gt;</code> pelo valor completo exibido acima.</p>
+        <h2>Inicie o Codex com o perfil já instalado</h2>
+        <p>Ainda no mesmo tmux visível e na raiz do projeto, inicie:</p>
         <div class="command">
           <button class="copy" type="button" data-copy="codex-profile-command">Copiar</button>
-          <pre id="codex-profile-command"><code>approval_policy = "on-request"
-default_permissions = "organoun-local"
-
-[features]
-network_proxy = true
-
-[permissions.organoun-local]
-description = "Workspace e socket tmux exato para o Organoun"
-extends = ":workspace"
-
-[permissions.organoun-local.network]
-enabled = true
-
-[permissions.organoun-local.network.unix_sockets]
-"&lt;TMUX_SOCKET_EXATO&gt;" = "allow"</code></pre>
+          <pre id="codex-profile-command"><code>codex --profile organoun</code></pre>
         </div>
-        <p class="muted">Não copie literalmente o placeholder e não libere <code>/tmp</code> inteiro. O perfil não pode ser combinado com <code>sandbox_mode</code> ou <code>[sandbox_workspace_write]</code> em nenhuma camada ativa.</p>
-        <p>Ainda na raiz do projeto, inicie <code>codex --profile organoun</code>. Nenhuma sessão paralela deve ser criada fora da visão do operador.</p>
-        <div class="warning"><strong>Se persistir <code>Operation not permitted</code>, pare.</strong> A política do launcher ou uma política administrada está prevalecendo. Corrija essa política; não use <code>danger-full-access</code> como atalho.</div>
+        <p>O perfil persistente já foi criado pelo instalador; não existe configuração local a refazer em cada Codex ou projeto. Nenhuma sessão paralela deve ser criada fora da visão do operador.</p>
+        <div class="warning"><strong>Se persistir <code>Operation not permitted</code>, pare.</strong> Saia do Codex e reinstale a partir do checkout escolhido, dentro desse mesmo tmux owner. Persistindo o bloqueio, uma política administrada está prevalecendo; não use <code>danger-full-access</code> como atalho.</div>
       </section>
 
       <section class="step" id="chamada">
@@ -541,7 +521,7 @@ enabled = true
           <tbody>
             <tr><td><code>organ</code> ou skill ausentes</td><td>Informar a ausência e parar.</td></tr>
             <tr><td>Codex fora do tmux visível</td><td>Orientar saída e retomada dentro do tmux; parar.</td></tr>
-            <tr><td>Socket tmux retorna <code>Operation not permitted</code></td><td>Orientar o perfil exato; nunca recomendar acesso total automático.</td></tr>
+            <tr><td>Socket tmux retorna <code>Operation not permitted</code></td><td>Sair do Codex e reinstalar pelo checkout dentro do tmux owner; nunca editar o perfil manualmente nem recomendar acesso total.</td></tr>
             <tr><td>Deployment ausente</td><td>Executar somente <code>organ onboard</code>; apresentar o recibo e parar.</td></tr>
             <tr><td>Deployment válido</td><td>Executar <code>organ init --json</code>.</td></tr>
           </tbody>
@@ -580,7 +560,7 @@ enabled = true
           <li>execute <code>tmux new -s NOME</code> ou entre numa sessão existente;</li>
           <li>volte à raiz do projeto;</li>
           <li>execute <code>codex --profile organoun resume</code> ou uma nova sessão com <code>codex --profile organoun</code>;</li>
-          <li>repita a chamada de inicialização.</li>
+          <li>repita a chamada de inicialização; o perfil e o deployment serão reutilizados, sem nova configuração.</li>
         </ol>
       </section>
 

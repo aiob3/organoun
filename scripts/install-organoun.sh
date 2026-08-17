@@ -14,10 +14,13 @@ print_help() {
   cat <<EOF
 Usage: ${0##*/} [--prefix HOME_ROOT] [--apply] [--reinstall]
 
-Install the Organoun CLI, runtime, and Codex skill for one local user.
+Install the Organoun CLI, runtime, Codex skill, and persistent Codex permission
+profile for one local user. Run every dry-run, install, update, or reinstall
+from the visible tmux session that will own Organoun. --help is always safe.
 
 Default (without --apply):
-  Print the three exact destinations below and make no filesystem changes.
+  Validate the current tmux owner, print the four exact destinations below,
+  and make no filesystem changes.
 
 With --apply:
   Validate the source and every managed destination, stage and syntax-check the
@@ -25,6 +28,9 @@ With --apply:
     HOME_ROOT/.local/share/organoun   runtime, probes, config example, and vendor pin
     HOME_ROOT/.local/bin/organ        relative symlink to the installed CLI
     HOME_ROOT/.codex/skills/organoun  installed Codex skill
+    HOME_ROOT/.codex/organoun.config.toml
+                                       persistent profile restricted to the
+                                       exact socket of the current tmux owner
 
   An identical existing installation is accepted. A conflicting or unsafe
   destination is refused. The source checkout and project repositories are not
@@ -32,10 +38,11 @@ With --apply:
 
 With --apply --reinstall:
   Require the existing runtime, CLI link, and skill to match the Organoun-owned
-  destination topology. Stage and validate the pulled source first, replace only
-  the installed runtime and skill with same-filesystem renames, keep the CLI
-  link, and restore the previous installation if publication is interrupted.
-  Project deployments and the source checkout remain untouched.
+  destination topology. Stage and validate the pulled source first, replace the
+  installed runtime, skill, and dedicated Codex profile with same-filesystem
+  renames, keep the CLI link, and restore the previous installation if
+  publication is interrupted. Project deployments and the source checkout
+  remain untouched.
 
 After a successful apply (not performed automatically):
   export PATH="\$HOME/.local/bin:\$PATH"
@@ -51,7 +58,8 @@ Options:
   --apply             Perform the changes described above. Without this flag,
                       the command is a dry run.
   --reinstall         With --apply, replace a prior Organoun installation after
-                      validating its three exact managed destinations.
+                      validating its exact managed destinations. This is also
+                      the update path after git pull --ff-only.
   --help              Print this explanation and exit without changes.
 EOF
 }
@@ -114,12 +122,87 @@ canonical_root="$(readlink -f -- "$home_root")"
   exit 64
 }
 
+[[ -n "${TMUX:-}" && -n "${TMUX_PANE:-}" && "$TMUX_PANE" =~ ^%[0-9]+$ ]] || {
+  printf '%s\n' 'Organoun installation must run inside the visible owner tmux session' >&2
+  exit 64
+}
+tmux_socket="${TMUX%%,*}"
+[[ "$tmux_socket" == /* && "$tmux_socket" != *['"\\']* && \
+   ! "$tmux_socket" =~ [[:cntrl:]] && -S "$tmux_socket" ]] || {
+  printf 'invalid or inaccessible tmux owner socket: %s\n' "$tmux_socket" >&2
+  exit 64
+}
+command -v tmux >/dev/null 2>&1 || {
+  printf '%s\n' 'tmux is required to prove the visible Organoun owner pane' >&2
+  exit 64
+}
+observed_pane="$(
+  tmux -S "$tmux_socket" display-message -p -t "$TMUX_PANE" '#{pane_id}' \
+    2>/dev/null
+)" || {
+  printf '%s\n' 'unable to prove the visible Organoun owner pane' >&2
+  exit 64
+}
+[[ "$observed_pane" == "$TMUX_PANE" ]] || {
+  printf 'tmux owner pane mismatch: expected %s, observed %s\n' \
+    "$TMUX_PANE" "$observed_pane" >&2
+  exit 64
+}
+
 share="$home_root/.local/share/organoun"
 cli_link="$home_root/.local/bin/organ"
 skill="$home_root/.codex/skills/organoun"
+codex_profile="$home_root/.codex/organoun.config.toml"
+
+render_codex_profile() {
+  printf '%s\n' \
+    '# managed-by: organoun' \
+    '# organoun-profile-schema: 1' \
+    'approval_policy = "on-request"' \
+    'default_permissions = "organoun-local"' \
+    '' \
+    '[features]' \
+    'network_proxy = true' \
+    '' \
+    '[permissions.organoun-local]' \
+    'description = "Workspace e socket tmux exato para o Organoun"' \
+    'extends = ":workspace"' \
+    '' \
+    '[permissions.organoun-local.network]' \
+    'enabled = true' \
+    '' \
+    '[permissions.organoun-local.network.unix_sockets]'
+  printf '"%s" = "allow"\n' "$tmux_socket"
+}
+
+render_legacy_codex_profile() {
+  render_codex_profile | sed '1,2d'
+}
+
+profile_matches_expected() {
+  [[ -f "$codex_profile" && ! -L "$codex_profile" ]] || return 1
+  cmp -s -- "$codex_profile" <(render_codex_profile)
+}
+
+profile_is_adoptable_legacy() {
+  [[ -f "$codex_profile" && ! -L "$codex_profile" ]] || return 1
+  cmp -s -- "$codex_profile" <(render_legacy_codex_profile)
+}
+
+profile_is_marked_owned() {
+  local first_line=""
+  local second_line=""
+  [[ -f "$codex_profile" && ! -L "$codex_profile" ]] || return 1
+  {
+    IFS= read -r first_line || return 1
+    IFS= read -r second_line || return 1
+  } <"$codex_profile"
+  [[ "$first_line" == '# managed-by: organoun' && \
+     "$second_line" == '# organoun-profile-schema: 1' ]]
+}
 
 print_destinations() {
-  printf '%s\n' "$share" "$cli_link" "$skill"
+  printf '%s\n' "$share" "$cli_link" "$skill" "$codex_profile"
 }
 
 if [[ "$apply" != true ]]; then
@@ -210,6 +293,13 @@ assert_reinstallable() {
     printf 'reinstall refused an incomplete Organoun installation\n' >&2
     return 64
   }
+  if [[ -e "$codex_profile" || -L "$codex_profile" ]]; then
+    profile_is_marked_owned || profile_is_adoptable_legacy || {
+      printf 'reinstall refuses a Codex profile not proven Organoun-owned: %s\n' \
+        "$codex_profile" >&2
+      return 64
+    }
+  fi
 }
 
 preflight() {
@@ -231,6 +321,12 @@ preflight() {
       return 64
     }
   fi
+  if [[ -e "$codex_profile" || -L "$codex_profile" ]]; then
+    profile_matches_expected || profile_is_adoptable_legacy || {
+      printf 'refusing a different or unsafe Codex profile: %s\n' "$codex_profile" >&2
+      return 64
+    }
+  fi
 }
 
 preflight
@@ -246,14 +342,17 @@ stage=""
 share_created=false
 skill_created=false
 cli_created=false
+profile_created=false
 share_backup=""
 skill_backup=""
+profile_backup=""
 complete=false
 
 cleanup() {
   set +e
   if [[ "$complete" != true ]]; then
     [[ "$cli_created" == false ]] || rm -f -- "$cli_link"
+    [[ "$profile_created" == false ]] || rm -f -- "$codex_profile"
     [[ "$skill_created" == false ]] || rm -rf -- "$skill"
     [[ "$share_created" == false ]] || rm -rf -- "$share"
     if [[ -n "$skill_backup" && -d "$skill_backup" && ! -e "$skill" && ! -L "$skill" ]]; then
@@ -261,6 +360,10 @@ cleanup() {
     fi
     if [[ -n "$share_backup" && -d "$share_backup" && ! -e "$share" && ! -L "$share" ]]; then
       mv -T -- "$share_backup" "$share"
+    fi
+    if [[ -n "$profile_backup" && -f "$profile_backup" && \
+          ! -e "$codex_profile" && ! -L "$codex_profile" ]]; then
+      mv -T -- "$profile_backup" "$codex_profile"
     fi
   fi
   [[ -z "$stage" ]] || rm -rf -- "$stage"
@@ -286,6 +389,8 @@ preflight
 stage="$(mktemp -d -- "$home_root/.organoun-stage.XXXXXX")"
 chmod 700 -- "$stage"
 mkdir -- "$stage/share" "$stage/skill"
+render_codex_profile >"$stage/organoun.config.toml"
+chmod 600 -- "$stage/organoun.config.toml"
 cp -a -- "$repo_root/bin" "$repo_root/config" "$repo_root/lib" \
   "$repo_root/probes" "$repo_root/vendor" "$stage/share/"
 mkdir -- "$stage/share/scripts"
@@ -334,6 +439,17 @@ elif [[ ! -e "$share" && ! -L "$share" ]]; then
   mv -T -- "$stage/share" "$share"
   share_created=true
 fi
+
+if [[ -e "$codex_profile" && ! -L "$codex_profile" ]] && \
+   { [[ "$reinstall" == true ]] || ! profile_matches_expected; }; then
+  profile_backup="$stage/previous-organoun.config.toml"
+  mv -T -- "$codex_profile" "$profile_backup"
+  mv -T -- "$stage/organoun.config.toml" "$codex_profile"
+  profile_created=true
+elif [[ ! -e "$codex_profile" && ! -L "$codex_profile" ]]; then
+  mv -T -- "$stage/organoun.config.toml" "$codex_profile"
+  profile_created=true
+fi
 if [[ "$reinstall" != true && ! -e "$skill" && ! -L "$skill" ]]; then
   mv -T -- "$stage/skill" "$skill"
   skill_created=true
@@ -349,9 +465,13 @@ fi
 chmod 755 -- "$share/bin/organ" "$share/probes/claude-composer-empty" \
   "$share/scripts/onboard-organoun.sh" \
   "$share/vendor/outsourcerer/outsourcerer.sh"
+chmod 600 -- "$codex_profile"
 
 complete=true
 rm -rf -- "$stage"
 stage=""
 rmdir -- "$lock_dir"
 trap - EXIT HUP INT TERM
+printf '%s\n' 'ORGANOUN_INSTALL=READY'
+printf 'ORGANOUN_CODEX_PROFILE=%s\n' "$codex_profile"
+printf '%s\n' 'NEXT=codex --profile organoun'

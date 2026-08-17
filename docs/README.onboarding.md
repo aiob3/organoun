@@ -16,7 +16,7 @@ O endpoint remoto precisa ter somente acesso SSH autorizado, Claude autenticado
 e o diretório de trabalho escolhido. O Organoun e o tmux permanecem na máquina
 local do operador.
 
-## 1. Instale o Organoun uma vez
+## 1. Clone, entre no tmux e instale uma vez
 
 Abra um terminal no diretório em que você escolheu guardar o checkout. O clone
 cria a pasta `organoun` no diretório atual; o Organoun não impõe uma localização:
@@ -24,6 +24,13 @@ cria a pasta `organoun` no diretório atual; o Organoun não impõe uma localiza
 ```bash
 gh repo clone aiob3/organoun
 cd organoun
+tmux new -s organoun
+```
+
+Se já estiver dentro do tmux que será o owner visível, não crie outro. Dentro
+dessa sessão, execute:
+
+```bash
 ./scripts/install-organoun.sh --help
 ./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply
@@ -32,13 +39,20 @@ command -v organ
 ```
 
 `--help` explica o contrato antes de qualquer alteração. A execução sem
-`--apply` é o dry-run: não escreve nada e mostra os três destinos exatos. Somente
+`--apply` é o dry-run: não escreve nada e mostra os quatro destinos exatos. Somente
 `--apply` autoriza o instalador a criar, após validação e staging:
 
 - `~/.local/share/organoun`: runtime, probes, exemplo de configuração e pin do
   vendor;
 - `~/.local/bin/organ`: link relativo para o CLI instalado;
-- `~/.codex/skills/organoun`: skill instalada do Codex.
+- `~/.codex/skills/organoun`: skill instalada do Codex;
+- `~/.codex/organoun.config.toml`: perfil persistente do Codex, restrito ao
+  socket exato do tmux owner em que a instalação foi executada.
+
+O perfil é gerado automaticamente a partir de `TMUX`; o operador não cria nem
+edita esse arquivo. Ele persiste entre projetos e sessões Codex. O comando
+`codex --profile organoun` apenas seleciona o perfil já instalado — não refaz a
+configuração.
 
 Uma instalação idêntica é aceita; um destino diferente ou inseguro é recusado.
 O comando não modifica o checkout clonado, não altera outro repositório e não
@@ -52,12 +66,13 @@ altera automaticamente.
 
 `command -v organ` é a comprovação final: deve imprimir o executável que esse
 shell realmente resolverá. Se não imprimir `~/.local/bin/organ` (com `~`
-expandido para o home real), pare antes de iniciar o tmux.
+expandido para o home real), pare.
 
 ### Atualize uma instalação existente a partir do checkout escolhido
 
 Entre no clone que você decidiu manter; o Organoun não presume onde ele está.
-Atualize somente por avanço linear, releia a ajuda e observe o dry-run antes de
+Inicie ou entre no tmux owner visível antes de atualizar. Já dentro dele,
+atualize somente por avanço linear, releia a ajuda e observe o dry-run antes de
 autorizar a reinstalação:
 
 ```bash
@@ -70,11 +85,11 @@ export PATH="$HOME/.local/bin:$PATH"
 command -v organ
 ```
 
-`--reinstall` exige `--apply` e uma instalação anterior completa: runtime,
-link CLI exato e skill nos três destinos declarados pela ajuda. A nova fonte é
-montada e verificada antes da troca; uma interrupção durante a publicação
-restaura a instalação anterior. Nenhum deployment de projeto, checkout ou
-configuração SSH é removido.
+`--reinstall` exige `--apply` e uma instalação anterior completa: runtime, link
+CLI exato e skill. Ele também cria ou atualiza o perfil persistente com o socket
+do tmux owner atual. A nova fonte é montada e verificada antes da troca; uma
+interrupção durante a publicação restaura a instalação anterior. Nenhum
+deployment de projeto, checkout ou configuração SSH é removido.
 
 Resultado esperado:
 
@@ -103,59 +118,21 @@ git rev-parse --show-toplevel
 
 O segundo comando deve imprimir exatamente a raiz do projeto.
 
-## 3. Inicie o tmux antes do Codex
+## 3. Inicie o Codex com o perfil já instalado
 
-Se ainda não estiver dentro de uma sessão tmux:
-
-```bash
-tmux new -s calculadora
-```
-
-Já dentro do tmux, descubra o socket exato da sessão:
-
-```bash
-tmux_socket="${TMUX%%,*}"
-test -S "$tmux_socket"
-printf 'TMUX_SOCKET=%s\n' "$tmux_socket"
-```
-
-Crie ou edite `~/.codex/organoun.config.toml` e substitua
-`<TMUX_SOCKET_EXATO>` pelo valor completo exibido acima:
-
-```toml
-approval_policy = "on-request"
-default_permissions = "organoun-local"
-
-[features]
-network_proxy = true
-
-[permissions.organoun-local]
-description = "Workspace e socket tmux exato para o Organoun"
-extends = ":workspace"
-
-[permissions.organoun-local.network]
-enabled = true
-
-[permissions.organoun-local.network.unix_sockets]
-"<TMUX_SOCKET_EXATO>" = "allow"
-```
-
-Não copie literalmente o placeholder e não libere `/tmp` inteiro. Perfis de
-permissão não podem ser combinados com `sandbox_mode` ou
-`[sandbox_workspace_write]` em nenhuma camada ativa da configuração; se essas
-chaves legadas existirem, revise e remova somente elas antes de continuar.
-
-Ainda na raiz do projeto, inicie o Codex com o perfil dedicado:
+Ainda no mesmo tmux visível e na raiz do projeto, inicie:
 
 ```bash
 codex --profile organoun
 ```
 
-O pane em que o Codex foi iniciado será o owner visível do Organoun. Não crie
-sessões paralelas fora da visão do operador. Se a consulta ao tmux ainda retornar
-`Operation not permitted`, a política do launcher ou uma política administrada
-está prevalecendo: pare e corrija essa política; não use `danger-full-access` como
-atalho.
+O pane em que o Codex foi iniciado será o owner visível do Organoun. O perfil
+persistente já foi criado pelo instalador; não há arquivo local a reconstruir.
+Não crie sessões paralelas fora da visão do operador. Se a consulta ao tmux
+ainda retornar `Operation not permitted`, pare: saia do Codex e, nesse mesmo
+tmux visível, atualize/reinstale a partir do checkout escolhido. Se uma política
+administrada continuar prevalecendo, devolva o bloqueio ao operador; não use
+`danger-full-access` como atalho.
 
 ## 4. Faça a chamada no Codex
 
@@ -171,7 +148,7 @@ O Codex seguirá esta decisão:
 |---|---|
 | `organ` ou a skill não estão instalados | Informar a ausência e parar. |
 | Codex não está dentro do tmux visível | Orientar a saída e a retomada dentro do tmux; parar. |
-| Socket tmux retorna `Operation not permitted` | Orientar o perfil exato acima; nunca recomendar acesso total automático. |
+| Socket tmux retorna `Operation not permitted` | Sair do Codex e reinstalar pelo checkout dentro do tmux owner; nunca editar o perfil manualmente nem recomendar acesso total. |
 | Projeto ainda não possui deployment | Executar somente `organ onboard`; apresentar o recibo e parar. |
 | Projeto já possui deployment válido | Executar `organ init --json`. |
 
@@ -243,7 +220,8 @@ O Codex deve parar e orientar este procedimento:
    `codex --profile organoun`;
 5. repetir a chamada de inicialização do Organoun.
 
-O Codex nunca cria uma sessão oculta como correção automática.
+O perfil e o deployment existente são reutilizados; nenhuma configuração é
+refeita. O Codex nunca cria uma sessão oculta como correção automática.
 
 ## Comprovação concluída
 
