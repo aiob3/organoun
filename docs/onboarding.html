@@ -416,10 +416,9 @@
       <ol>
         <li><a href="#instalar">1. Instalar</a></li>
         <li><a href="#projeto">2. Entrar no projeto</a></li>
-        <li><a href="#tmux">3. Iniciar Codex</a></li>
-        <li><a href="#chamada">4. Chamar no Codex</a></li>
-        <li><a href="#onboard">5. Onboard</a></li>
-        <li><a href="#init">6. Init</a></li>
+        <li><a href="#onboard">3. Onboard</a></li>
+        <li><a href="#tmux">4. Ativar no Codex</a></li>
+        <li><a href="#init">5. Retomar</a></li>
         <li><a href="#comprovacao">Comprovação</a></li>
       </ol>
     </nav>
@@ -452,8 +451,7 @@ tmux new -s organoun</code></pre>
           <pre id="install-apply-command"><code>./scripts/install-organoun.sh --help
 ./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply
-export PATH="$HOME/.local/bin:$PATH"
-command -v organ</code></pre>
+readlink -f "$HOME/.local/bin/organ"</code></pre>
         </div>
         <p><code>--help</code> explica o contrato antes de qualquer alteração. A execução sem <code>--apply</code> comprova o tmux e faz o dry-run: não escreve nada e mostra os quatro destinos exatos.</p>
         <p>Somente <code>--apply</code> autoriza, após validação e staging, a criação de:</p>
@@ -465,9 +463,8 @@ command -v organ</code></pre>
         </ul>
         <p>O instalador cria o perfil automaticamente a partir de <code>TMUX</code>. O operador não cria nem edita esse arquivo. Ele é reutilizado entre projetos e sessões; <code>codex --profile organoun</code> apenas seleciona o perfil existente.</p>
         <p class="muted">Uma instalação idêntica é aceita; destino diferente ou inseguro é recusado. O comando não modifica o clone, outro repositório ou o onboarding de projeto.</p>
-        <p><code>export PATH="$HOME/.local/bin:$PATH"</code> altera somente o shell atual e seus filhos; não escreve arquivos e deixa de valer quando o shell termina. Persistir o PATH é uma escolha do operador no seu próprio shell.</p>
-        <p><code>command -v organ</code> comprova qual executável o shell usará. Se não imprimir o caminho instalado, pare.</p>
-        <p class="muted">Resultado esperado: <code>/home/SEU_USUARIO/.local/bin/organ</code>.</p>
+        <p><code>readlink -f "$HOME/.local/bin/organ"</code> comprova o link canônico instalado. O onboarding e a skill usam esse caminho absoluto: não dependem do <code>PATH</code>, não editam o shell e continuam funcionando em novas sessões e projetos.</p>
+        <p class="muted">Resultado esperado: <code>/home/SEU_USUARIO/.local/share/organoun/bin/organ</code>.</p>
         <h3>Se o Organoun já estiver instalado</h3>
         <p>Entre no clone que você decidiu manter e inicie ou entre no tmux owner visível; nenhuma localização é presumida. Já dentro dele, atualize por avanço linear, releia a ajuda e observe o dry-run antes de autorizar a reinstalação.</p>
         <div class="command">
@@ -477,11 +474,10 @@ git pull --ff-only
 ./scripts/install-organoun.sh --help
 ./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply --reinstall
-export PATH="$HOME/.local/bin:$PATH"
-command -v organ</code></pre>
+readlink -f "$HOME/.local/bin/organ"</code></pre>
         </div>
         <p class="muted"><code>--reinstall</code> exige a instalação Organoun anterior e sempre recria <code>~/.codex/organoun.config.toml</code> com acesso de filesystem e de rede Unix socket limitado ao socket do tmux owner atual. Perfil ausente é criado e qualquer arquivo regular anterior nesse caminho exclusivo é substituído; não faça limpeza manual. Os demais perfis Codex permanecem intactos. A nova fonte é validada antes da troca e uma interrupção restaura a instalação anterior.</p>
-        <div class="warning"><strong>Não execute <code>organ onboard</code> aqui.</strong> O checkout de instalação só guarda o código-fonte. Servidor, CWD remoto e raiz de projeto pertencem ao projeto-alvo.</div>
+        <div class="warning"><strong>Não execute <code>"$HOME/.local/bin/organ" onboard</code> aqui.</strong> O checkout de instalação só guarda o código-fonte. Servidor, CWD remoto e raiz de projeto pertencem ao projeto-alvo.</div>
       </section>
 
       <section class="step" id="projeto">
@@ -496,42 +492,15 @@ git rev-parse --show-toplevel</code></pre>
         <p>O segundo comando deve imprimir exatamente a raiz do projeto.</p>
       </section>
 
-      <section class="step" id="tmux">
-        <span class="number" aria-hidden="true">3</span>
-        <h2>Inicie o Codex com o perfil já instalado</h2>
-        <p>Ainda no mesmo tmux visível e na raiz do projeto, inicie:</p>
-        <div class="command">
-          <button class="copy" type="button" data-copy="codex-profile-command">Copiar</button>
-          <pre id="codex-profile-command"><code>codex --profile organoun</code></pre>
-        </div>
-        <p>O perfil persistente já foi criado pelo instalador; não existe configuração local a refazer em cada Codex ou projeto. Nenhuma sessão paralela deve ser criada fora da visão do operador.</p>
-        <div class="warning"><strong>Se persistir <code>Operation not permitted</code>, pare.</strong> Saia do Codex e reinstale a partir do checkout escolhido, dentro desse mesmo tmux owner. Persistindo o bloqueio, uma política administrada está prevalecendo; não use <code>danger-full-access</code> como atalho.</div>
-      </section>
-
-      <section class="step" id="chamada">
-        <span class="number" aria-hidden="true">4</span>
-        <h2>Faça a chamada no Codex</h2>
-        <p>Envie exatamente:</p>
-        <div class="command">
-          <button class="copy" type="button" data-copy="prompt-command">Copiar</button>
-          <pre id="prompt-command"><code>Codex, inicialize o $organoun neste repositório.</code></pre>
-        </div>
-        <table>
-          <thead><tr><th>Condição</th><th>Resultado obrigatório</th></tr></thead>
-          <tbody>
-            <tr><td><code>organ</code> ou skill ausentes</td><td>Informar a ausência e parar.</td></tr>
-            <tr><td>Codex fora do tmux visível</td><td>Orientar saída e retomada dentro do tmux; parar.</td></tr>
-            <tr><td>Socket tmux retorna <code>Operation not permitted</code></td><td>Sair do Codex e reinstalar pelo checkout dentro do tmux owner; nunca editar o perfil manualmente nem recomendar acesso total.</td></tr>
-            <tr><td>Deployment ausente</td><td>Sair do Codex; o operador executa <code>organ onboard</code> no shell visível e só retorna após <code>state=connected</code>.</td></tr>
-            <tr><td>Deployment válido</td><td>Executar <code>organ init --json</code>.</td></tr>
-          </tbody>
-        </table>
-      </section>
-
       <section class="step" id="onboard">
-        <span class="number" aria-hidden="true">5</span>
-        <h2>Primeiro uso: onboard</h2>
-        <p><strong>Antes de abrir o Codex nesse projeto</strong>, o operador executa <code>organ onboard</code> diretamente no shell humano visível. O Codex nunca executa esse comando nem recebe os dados do deployment.</p>
+        <span class="number" aria-hidden="true">3</span>
+        <h2>Primeiro uso: onboard antes do Codex</h2>
+        <p><strong>Antes de abrir o Codex nesse projeto</strong>, execute no shell humano visível:</p>
+        <div class="command">
+          <button class="copy" type="button" data-copy="onboard-command">Copiar</button>
+          <pre id="onboard-command"><code>"$HOME/.local/bin/organ" onboard</code></pre>
+        </div>
+        <p>O Codex nunca executa esse comando nem recebe os dados do deployment.</p>
         <p>O Organoun detecta e exibe a raiz local. O operador informa somente:</p>
         <ol>
           <li><strong>Remote SSH host/alias:</strong> o nome usado por <code>ssh</code>, sem <code>usuario@</code>;</li>
@@ -539,20 +508,39 @@ git rev-parse --show-toplevel</code></pre>
         </ol>
         <p>O onboarding mostra os dois valores que serão registrados e valida localmente a resolução da rota com <code>ssh -G</code>. Não conecta ao endpoint, não comprova novamente um acesso que o operador já realizou, não abre pane e não inicia Claude.</p>
         <div class="receipt">state=connected<br>Organoun Connected</div>
-        <p>O projeto recebe <code>.organoun/deployment.json</code> e <code>.organoun/state/</code>, ambos ignorados pelo Git. Depois de <code>state=connected</code>, o operador inicia o Codex com o perfil Organoun. Se o deployment estiver ausente, o Codex orienta esse rito e para; nunca abre o onboarding.</p>
+        <p>O projeto recebe <code>.organoun/deployment.json</code> e <code>.organoun/state/</code>, ambos ignorados pelo Git. Depois de <code>state=connected</code>, esse projeto não pede os dados novamente.</p>
+      </section>
+
+      <section class="step" id="tmux">
+        <span class="number" aria-hidden="true">4</span>
+        <h2>Inicie o Codex e ative o projeto</h2>
+        <p>Ainda no mesmo tmux visível e na raiz do projeto, inicie:</p>
+        <div class="command">
+          <button class="copy" type="button" data-copy="codex-profile-command">Copiar</button>
+          <pre id="codex-profile-command"><code>codex --profile organoun</code></pre>
+        </div>
+        <p>O perfil persistente já foi criado pelo instalador; não existe configuração local a refazer em cada Codex ou projeto. No Codex, envie exatamente:</p>
+        <div class="command">
+          <button class="copy" type="button" data-copy="prompt-command">Copiar</button>
+          <pre id="prompt-command"><code>Codex, inicialize o $organoun neste repositório.</code></pre>
+        </div>
+        <p>Com o deployment válido, a skill executa <code>"$HOME/.local/bin/organ" init --json</code>.</p>
+        <div class="receipt">state=initialized<br><br>Organoun ativo nesta sessão. O que vamos criar hoje?</div>
+        <p>Se o deployment estiver ausente, o Codex orienta a saída e para; nunca abre o onboarding nem coleta os dados.</p>
+        <div class="warning"><strong>Se persistir <code>Operation not permitted</code>, pare.</strong> Saia do Codex e reinstale a partir do checkout escolhido, dentro desse mesmo tmux owner. Persistindo o bloqueio, uma política administrada está prevalecendo; não use <code>danger-full-access</code> como atalho.</div>
       </section>
 
       <section class="step" id="init">
-        <span class="number" aria-hidden="true">6</span>
-        <h2>Ative o projeto</h2>
-        <p>Na interação seguinte, ainda no projeto e no tmux visível, repita a chamada.</p>
+        <span class="number" aria-hidden="true">5</span>
+        <h2>Próximas sessões</h2>
+        <p>Para retomar um projeto já onboarded, não reinstale, não exporte <code>PATH</code> e não execute onboarding novamente:</p>
         <div class="command">
-          <button class="copy" type="button" data-copy="repeat-command">Copiar</button>
-          <pre id="repeat-command"><code>Codex, inicialize o $organoun neste repositório.</code></pre>
+          <button class="copy" type="button" data-copy="resume-command">Copiar</button>
+          <pre id="resume-command"><code>cd /caminho/absoluto/para/calculadora
+codex --profile organoun</code></pre>
         </div>
-        <p>Com o deployment válido, o Codex executa <code>organ init --json</code>.</p>
-        <div class="receipt">state=initialized<br><br>Organoun ativo nesta sessão. O que vamos criar hoje?</div>
-        <p>O controle retorna ao operador. Nenhum pane subordinado é aberto antes de uma nova intenção e autorização visível.</p>
+        <p>No Codex, repita: <code>Codex, inicialize o $organoun neste repositório.</code> O perfil e o deployment são reutilizados.</p>
+        <p>Para outro projeto, faça uma única vez os passos 2 e 3; a instalação da máquina permanece a mesma.</p>
 
         <h3>Se o Codex foi iniciado fora do tmux</h3>
         <ol>
@@ -568,7 +556,7 @@ git rev-parse --show-toplevel</code></pre>
         <span class="number" aria-hidden="true">✓</span>
         <h2>Comprovação concluída</h2>
         <ul class="checks">
-          <li><code>command -v organ</code> encontrou a instalação local.</li>
+          <li><code>~/.local/bin/organ</code> comprovou a instalação local.</li>
           <li>O Codex foi iniciado no tmux visível.</li>
           <li>O primeiro uso retornou <code>state=connected</code>.</li>
           <li>A retomada retornou <code>state=initialized</code>.</li>

@@ -36,8 +36,7 @@ dessa sessão, execute:
 ./scripts/install-organoun.sh --help
 ./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply
-export PATH="$HOME/.local/bin:$PATH"
-command -v organ
+readlink -f "$HOME/.local/bin/organ"
 ```
 
 `--help` explica o contrato antes de qualquer alteração. A execução sem
@@ -62,15 +61,10 @@ Uma instalação idêntica é aceita; um destino diferente ou inseguro é recusa
 O comando não modifica o checkout clonado, não altera outro repositório e não
 executa onboarding de projeto.
 
-`export PATH="$HOME/.local/bin:$PATH"` apenas antepõe o diretório do CLI ao
-`PATH` do shell atual e de seus processos filhos. Ele não escreve arquivo e deixa
-de valer quando esse shell termina. Torná-lo permanente é uma decisão do
-operador no arquivo de inicialização do seu próprio shell; o Organoun não o
-altera automaticamente.
-
-`command -v organ` é a comprovação final: deve imprimir o executável que esse
-shell realmente resolverá. Se não imprimir `~/.local/bin/organ` (com `~`
-expandido para o home real), pare.
+`readlink -f "$HOME/.local/bin/organ"` comprova o link canônico instalado. O
+onboarding e a skill usam esse caminho absoluto: não dependem do `PATH`, não
+alteram arquivos de inicialização do shell e continuam funcionando em novos
+shells, sessões tmux, sessões Codex e projetos.
 
 ### Atualize uma instalação existente a partir do checkout escolhido
 
@@ -85,8 +79,7 @@ git pull --ff-only
 ./scripts/install-organoun.sh --help
 ./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply --reinstall
-export PATH="$HOME/.local/bin:$PATH"
-command -v organ
+readlink -f "$HOME/.local/bin/organ"
 ```
 
 `--reinstall` exige `--apply` e uma instalação anterior completa: runtime, link
@@ -101,17 +94,13 @@ configuração SSH é removido.
 Resultado esperado:
 
 ```text
-/home/SEU_USUARIO/.local/bin/organ
+/home/SEU_USUARIO/.local/share/organoun/bin/organ
 ```
-
-O `export` torna o CLI visível na sessão atual e no tmux iniciado a partir dela.
-Depois, inclua `~/.local/bin` no `PATH` permanente do seu shell conforme a
-configuração da sua máquina.
 
 Essa etapa instala o CLI, o runtime e a skill do Codex. Ela não solicita servidor,
 CWD remoto ou projeto e não cria `.organoun/` no checkout de instalação.
 
-> Não execute `organ onboard` no checkout do Organoun, a menos que o próprio
+> Não execute `"$HOME/.local/bin/organ" onboard` no checkout do Organoun, a menos que o próprio
 > Organoun seja deliberadamente o projeto em que a ponte atuará.
 
 ## 2. Entre no projeto em que o Organoun atuará
@@ -125,45 +114,15 @@ git rev-parse --show-toplevel
 
 O segundo comando deve imprimir exatamente a raiz do projeto.
 
-## 3. Inicie o Codex com o perfil já instalado
+## 3. Primeiro uso do projeto: onboarding antes do Codex
 
-Ainda no mesmo tmux visível e na raiz do projeto, inicie:
+Ainda no tmux visível e na raiz do projeto, o operador executa diretamente:
 
 ```bash
-codex --profile organoun
+"$HOME/.local/bin/organ" onboard
 ```
 
-O pane em que o Codex foi iniciado será o owner visível do Organoun. O perfil
-persistente já foi criado pelo instalador; não há arquivo local a reconstruir.
-Não crie sessões paralelas fora da visão do operador. Se a consulta ao tmux
-ainda retornar `Operation not permitted`, pare: saia do Codex e, nesse mesmo
-tmux visível, atualize/reinstale a partir do checkout escolhido. Se uma política
-administrada continuar prevalecendo, devolva o bloqueio ao operador; não use
-`danger-full-access` como atalho.
-
-## 4. Faça a chamada no Codex
-
-Envie exatamente:
-
-```text
-Codex, inicialize o $organoun neste repositório.
-```
-
-O Codex seguirá esta decisão:
-
-| Condição observada | Resultado obrigatório |
-|---|---|
-| `organ` ou a skill não estão instalados | Informar a ausência e parar. |
-| Codex não está dentro do tmux visível | Orientar a saída e a retomada dentro do tmux; parar. |
-| Socket tmux retorna `Operation not permitted` | Sair do Codex e reinstalar pelo checkout dentro do tmux owner; nunca editar o perfil manualmente nem recomendar acesso total. |
-| Projeto ainda não possui deployment | Sair do Codex; o operador executa `organ onboard` no shell visível e só retorna após `state=connected`. |
-| Projeto já possui deployment válido | Executar `organ init --json`. |
-
-## 5. Primeiro uso do projeto: onboarding
-
-Antes de abrir o Codex nesse projeto, o operador executa `organ onboard`
-diretamente no shell humano visível. O Codex nunca executa esse comando nem
-recebe os dados do deployment.
+O Codex nunca executa esse comando nem recebe os dados do deployment.
 
 O Organoun detecta e exibe a **Local project root**. O operador informa somente:
 
@@ -188,22 +147,27 @@ O projeto passa a conter somente dados locais ignorados pelo Git:
 .organoun/state/
 ```
 
-Depois de `state=connected`, o operador inicia o Codex com o perfil Organoun. Se
-o Codex encontrar um projeto sem deployment, ele apenas orienta esse rito e
-para; não abre o onboarding por conta própria.
+Depois de `state=connected`, esse projeto não pede os dados novamente.
 
-## 6. Ative o projeto
+## 4. Inicie o Codex e ative o projeto
 
-Na interação seguinte, ainda no mesmo projeto e dentro do tmux visível, repita:
+Ainda no mesmo tmux visível e na raiz do projeto, inicie:
+
+```bash
+codex --profile organoun
+```
+
+O perfil persistente já foi criado pelo instalador; não há configuração local a
+reconstruir. No Codex, envie exatamente:
 
 ```text
 Codex, inicialize o $organoun neste repositório.
 ```
 
-Agora o Codex executará:
+Com o deployment válido, a skill executará pelo caminho canônico:
 
 ```bash
-organ init --json
+"$HOME/.local/bin/organ" init --json
 ```
 
 Resultado esperado:
@@ -220,6 +184,29 @@ Organoun ativo nesta sessão. O que vamos criar hoje?
 
 O controle retorna ao operador. Nenhum pane subordinado é aberto até que o
 operador apresente uma nova intenção e autorize o próximo passo visível.
+
+Se o projeto ainda não tiver deployment, o Codex orientará a saída e parará. O
+operador então executa o passo 3 no shell visível; o Codex nunca abre o diálogo
+de onboarding nem coleta os dados.
+
+## 5. Próximas sessões e outros projetos
+
+Para retomar um projeto já onboarded, não reinstale, não exporte `PATH` e não
+execute onboarding novamente:
+
+```bash
+cd /caminho/absoluto/para/calculadora
+codex --profile organoun
+```
+
+Então repita no Codex:
+
+```text
+Codex, inicialize o $organoun neste repositório.
+```
+
+Para outro projeto, faça uma única vez os passos 2 e 3; a instalação da máquina
+e o perfil Codex são reutilizados.
 
 ## Se o Codex foi iniciado fora do tmux
 
@@ -239,7 +226,7 @@ refeita. O Codex nunca cria uma sessão oculta como correção automática.
 
 O onboarding prático está concluído quando o operador observou, nesta ordem:
 
-- instalação local encontrada por `command -v organ`;
+- instalação local comprovada em `~/.local/bin/organ`;
 - Codex executando no tmux visível;
 - recibo `state=connected` no primeiro uso;
 - recibo `state=initialized` na retomada;

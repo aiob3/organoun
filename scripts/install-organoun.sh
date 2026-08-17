@@ -48,13 +48,12 @@ With --apply --reinstall:
   Other Codex profiles, project deployments, and the source checkout remain
   untouched.
 
-After a successful apply (not performed automatically):
-  export PATH="\$HOME/.local/bin:\$PATH"
-      Makes the installed CLI resolvable in the current shell and its children
-      only. It does not edit a shell startup file and ends with that shell.
-  command -v organ
-      Prints the exact executable the current shell will use. Stop if it does
-      not resolve to HOME_ROOT/.local/bin/organ.
+Installed CLI:
+  HOME_ROOT/.local/bin/organ
+      Canonical executable used by the onboarding guide and installed Codex
+      skill. Organoun does not depend on PATH and does not edit shell startup
+      files. A new shell, tmux session, Codex session, or project therefore does
+      not require export, reinstall, or local reconfiguration.
 
 Options:
   --prefix HOME_ROOT  Use this existing canonical directory as the home root.
@@ -469,5 +468,6 @@ stage=""
 rmdir -- "$lock_dir"
 trap - EXIT HUP INT TERM
 printf '%s\n' 'ORGANOUN_INSTALL=READY'
+printf 'ORGANOUN_CLI=%s\n' "$cli_link"
 printf 'ORGANOUN_CODEX_PROFILE=%s\n' "$codex_profile"
 printf '%s\n' 'NEXT=codex --profile organoun'

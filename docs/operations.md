@@ -37,8 +37,7 @@ Se já estiver no tmux owner visível, não crie outro. Dentro dele:
 ./scripts/install-organoun.sh --help
 ./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply
-export PATH="$HOME/.local/bin:$PATH"
-command -v organ
+readlink -f "$HOME/.local/bin/organ"
 ```
 
 `--help` descreve os efeitos; sem `--apply`, o comando comprova o tmux e imprime os quatro
@@ -51,9 +50,9 @@ Instalação idêntica é idempotente; colisão diferente ou insegura é recusad
 clone e os projetos não são modificados. O operador nunca cria ou edita o perfil
 manualmente.
 
-O `export` altera somente o `PATH` do shell corrente e seus filhos, sem escrever
-arquivos. `command -v organ` deve então comprovar o executável efetivamente
-resolvido; resultado ausente ou diferente interrompe o rito.
+O caminho canônico é `~/.local/bin/organ`. O onboarding e a skill o invocam
+diretamente, sem depender do `PATH`, sem editar o shell e sem exigir export ou
+reinstalação em uma nova sessão.
 
 Para atualizar a partir do clone escolhido pelo operador, entre primeiro no
 tmux owner visível e execute somente:
@@ -64,8 +63,7 @@ git pull --ff-only
 ./scripts/install-organoun.sh --help
 ./scripts/install-organoun.sh
 ./scripts/install-organoun.sh --apply --reinstall
-export PATH="$HOME/.local/bin:$PATH"
-command -v organ
+readlink -f "$HOME/.local/bin/organ"
 ```
 
 `--reinstall` exige `--apply` e comprova a topologia Organoun antes de substituir
@@ -78,7 +76,7 @@ anterior; deployments de projeto, clone e configuração SSH não são tocados.
 O instalador publica o runtime, a skill e somente o perfil dedicado do Codex,
 mas não solicita raiz de projeto, alias SSH ou CWD remoto e não altera a
 configuração geral do Codex. Não execute
-`organ onboard` dentro desse checkout, exceto se o próprio Organoun for
+`"$HOME/.local/bin/organ" onboard` dentro desse checkout, exceto se o próprio Organoun for
 deliberadamente o projeto-alvo.
 
 ## Protocolo por projeto
@@ -96,11 +94,11 @@ saia do Codex e reinstale pelo checkout dentro do tmux owner. Persistindo o
 bloqueio, devolva a política administrada ao operador.
 
 ```text
-organ ausente                    -> reinstalar a partir do checkout Organoun
+CLI canônico ausente             -> reinstalar a partir do checkout Organoun
 Codex fora do tmux owner visível -> sair, entrar no tmux e retomar o Codex
 socket tmux sem permissão         -> sair; reinstalar no tmux owner; parar
-deployment ausente ou inválido -> sair do Codex; operador executa organ onboard
-deployment válido             -> organ init --json
+deployment ausente ou inválido -> sair do Codex; operador executa o onboard canônico
+deployment válido             -> skill executa o init canônico
 init válido                    -> reserve/enter/observe/send/close/release
 ```
 
@@ -108,20 +106,20 @@ Nenhum pane, SSH, Claude, claim, dispatch ou evento paralelo começa antes de `i
 o digest atual.
 
 Ao receber “inicialize o `$organoun` aqui”, o Codex verifica primeiro
-`command -v organ` e o contexto `TMUX`/`TMUX_PANE`. Se o Codex não tiver sido
+`test -x "$HOME/.local/bin/organ"` e o contexto `TMUX`/`TMUX_PANE`. Se o Codex não tiver sido
 iniciado dentro da sessão tmux owner, ele orienta o operador a sair, iniciar ou
 entrar no tmux, executar `codex --profile organoun resume` ou iniciar uma nova
 sessão com `codex --profile organoun` e repetir o pedido. O perfil e o deployment
 são reutilizados; nenhuma configuração é refeita. Nenhuma sessão é criada por
 trás do operador. Se o deployment estiver ausente, o Codex manda o operador sair
-e para: somente o operador executa `organ onboard` no shell humano visível.
+e para: somente o operador executa `"$HOME/.local/bin/organ" onboard` no shell humano visível.
 
 ### Primeira execução na raiz
 
 Antes de abrir o Codex, na raiz canônica do projeto e no shell humano visível:
 
 ```bash
-organ onboard
+"$HOME/.local/bin/organ" onboard
 ```
 
 O comando detecta e exibe a raiz local. O operador informa somente o host/alias
@@ -154,7 +152,7 @@ não repita: inspecione o estado e obtenha nova intenção explícita.
 ### Próxima janela e retomadas
 
 ```bash
-organ init --json
+"$HOME/.local/bin/organ" init --json
 ```
 
 `init` carrega automaticamente o deployment da raiz corrente, associa seu digest ao
@@ -170,7 +168,7 @@ Organoun ativo nesta sessão. O que vamos criar hoje?
 Então devolve o controle ao operador.
 
 Uma raiz já onboarded nunca solicita nem grava novamente os valores. Uma raiz
-nova recomeça obrigatoriamente por `organ onboard`, fora do Codex.
+nova recomeça obrigatoriamente por `"$HOME/.local/bin/organ" onboard`, fora do Codex.
 
 Não existe fallback para `XDG_CONFIG_HOME` ou `XDG_STATE_HOME`.
 
@@ -191,12 +189,13 @@ O operador permanece no owner local. Cada endpoint usa um pane subordinado local
 simultaneamente visível. A ordem mecânica é:
 
 ```text
-organ reserve ALIAS --json
+"$HOME/.local/bin/organ" reserve ALIAS --json
 operator attestation
-organ enter ALIAS --attest NONCE --json
-organ status/read ALIAS --json
+"$HOME/.local/bin/organ" enter ALIAS --attest NONCE --json
+"$HOME/.local/bin/organ" status ALIAS --json
+"$HOME/.local/bin/organ" read ALIAS --json
 uma ação autorizada
-organ close ALIAS --json
+"$HOME/.local/bin/organ" close ALIAS --json
 ```
 
 Sessões adotadas mantêm claim obrigatório, `release` em vez de `stop` e proibição de
@@ -207,7 +206,7 @@ recibo Organoun válido comprova posse.
 
 | Código/estado | Ação |
 |---|---|
-| `ONBOARD_REQUIRED` | Execute `organ onboard` somente após nova autorização; nenhum pane foi criado. |
+| `ONBOARD_REQUIRED` | Execute `"$HOME/.local/bin/organ" onboard` somente após nova autorização; nenhum pane foi criado. |
 | `DEPLOYMENT_ALREADY_EXISTS` | Preserve o arquivo. Não sobrescreva nem reenvie os dados. |
 | `ROUTE_INVALID` | Corrija o alias localmente e reinicie o onboarding mediante nova intenção. |
 | `VISIBLE_PANE_REQUIRED` | Pare; não crie transporte oculto nem contorne pelo tmux. |

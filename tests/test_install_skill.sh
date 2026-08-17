@@ -78,17 +78,17 @@ assert_skill_contract() {
   assert_skill_pattern "$file" 'new work requires a separately scoped explicit intention' \
     'nova intenção explícita.*separadamente escopada.*trabalho novo'
   assert_skill_pattern "$file" 'installation is checked before project activation' \
-    'command -v organ.*antes.*onboard.*init'
+    'test -x .*\.local/bin/organ.*antes de .*init'
   assert_skill_pattern "$file" 'installed skill is checked before project activation' \
-    'test -r .*\.codex/skills/organoun/SKILL\.md.*antes.*onboard.*init'
+    'test -r .*\.codex/skills/organoun/SKILL\.md.*antes de .*init'
   assert_skill_pattern "$file" 'tmux owner context is checked before deployment selection' \
     'tmux.*antes de (ler|inspecionar).*deployment'
   assert_skill_pattern "$file" 'missing tmux returns an explicit restart recipe' \
     'sair do Codex.*iniciar ou entrar.*tmux.*retomar'
-  assert_skill_pattern "$file" 'new project runs only onboard and stops connected' \
-    'deployment.*ausente.*somente.*organ onboard.*state=connected.*pare'
+  assert_skill_pattern "$file" 'new project returns onboarding to the visible operator' \
+    'ONBOARD_REQUIRED.*operador.*organ.*onboard.*state=connected.*Pare'
   assert_skill_pattern "$file" 'configured project runs init' \
-    'deployment.*válido.*organ init --json'
+    'raiz Git canônica.*organ.*init --json'
   assert_skill_pattern "$file" 'initialized session returns the operator handoff sentence' \
     'Organoun ativo nesta sessão\. O que vamos criar hoje\?'
 }
