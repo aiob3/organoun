@@ -189,6 +189,27 @@ Se o projeto ainda não tiver deployment, o Codex orientará a saída e parará.
 operador então executa o passo 3 no shell visível; o Codex nunca abre o diálogo
 de onboarding nem coleta os dados.
 
+## Se a sessão tmux original foi fechada
+
+A Sessão Proprietária do Organoun fica amarrada à sessão tmux exata em que
+`organ init` rodou pela primeira vez. Se você fechar essa sessão tmux e abrir
+outra — mesmo no mesmo projeto, mesma máquina —, o próximo `init` recusa com
+`CONTROLLER_OWNERSHIP_MISMATCH`: a posse antiga ainda está registrada e não é
+substituída automaticamente.
+
+Isso é esperado, não é uma reinstalação necessária. Na nova sessão tmux
+visível, execute:
+
+```bash
+"$HOME/.local/bin/organ" reset-owner --json
+```
+
+O comando só libera a posse depois de confirmar que a sessão tmux antiga já
+não existe mais; se ela ainda estiver ativa em outro lugar, ele recusa e
+nada é alterado. Depois do reset, retome normalmente com `codex --profile
+organoun`. Não reinstale, não repita `onboard` — o deployment local
+continua válido; só a posse da sessão foi resetada.
+
 ## 5. Próximas sessões e outros projetos
 
 Para retomar um projeto já onboarded, não reinstale, não exporte `PATH` e não

@@ -217,6 +217,36 @@ organ_control_owner_live() {
     '$owner + {current_layout_digest:$layout_digest,current_panes:$panes,current_owner_cwd:$current_owner_cwd}'
 }
 
+organ_control_owner_reset() {
+  local owner_file owner expected_session tmux_bin data
+
+  [[ -n "${TMUX:-}" && "${TMUX_PANE:-}" =~ ^%[0-9]+$ ]] || {
+    organ_emit_error reset-owner "" local CONTROLLER_OWNERSHIP_REQUIRED 'run reset-owner from a visible tmux session'
+    return 64
+  }
+
+  owner_file="$ORGAN_STATE_HOME/control/owner.json"
+  organ_control_owner_record_valid "$owner_file" || {
+    organ_emit_error reset-owner "" local OWNER_NOT_FOUND 'no owner record to reset'
+    return 64
+  }
+  owner="$(<"$owner_file")"
+  expected_session="$(jq -er '.session_id' <<<"$owner")" || return 64
+
+  tmux_bin="$(organ_tmux_bin)" || return 64
+  if "$tmux_bin" has-session -t "$expected_session" >/dev/null 2>&1; then
+    organ_emit_error reset-owner "" local CONTROLLER_OWNERSHIP_LIVE 'the previous owner tmux session is still active; cannot reset'
+    return 64
+  fi
+
+  rm -f -- "$owner_file" || {
+    organ_emit_error reset-owner "" local OWNER_RESET_FAILED 'could not remove the stale owner record'
+    return 64
+  }
+  data="$(jq -c '{previous_owner_id:.owner_id,previous_session_id:.session_id}' <<<"$owner")"
+  organ_emit_ok reset-owner "" local reset not-applicable "$data"
+}
+
 organ_control_panes_init() (
   local control_dir panes_dir
 

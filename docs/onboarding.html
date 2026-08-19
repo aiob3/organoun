@@ -528,6 +528,7 @@ git rev-parse --show-toplevel</code></pre>
         <div class="receipt">state=initialized<br><br>Organoun ativo nesta sessão. O que vamos criar hoje?</div>
         <p>Se o deployment estiver ausente, o Codex orienta a saída e para; nunca abre o onboarding nem coleta os dados.</p>
         <div class="warning"><strong>Se persistir <code>Operation not permitted</code>, pare.</strong> Saia do Codex e reinstale a partir do checkout escolhido, dentro desse mesmo tmux owner. Persistindo o bloqueio, uma política administrada está prevalecendo; não use <code>danger-full-access</code> como atalho.</div>
+        <div class="warning"><strong>Se <code>init</code> retornar <code>CONTROLLER_OWNERSHIP_MISMATCH</code>, a sessão tmux original foi fechada.</strong> Saia do Codex e, na sessão tmux atual, execute <code>"$HOME/.local/bin/organ" reset-owner --json</code>. Ele só libera a posse depois de confirmar que a sessão antiga não existe mais; retome com <code>codex --profile organoun</code> em seguida. Não reinstale, não repita <code>onboard</code>.</div>
       </section>
 
       <section class="step" id="init">

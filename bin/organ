@@ -128,7 +128,7 @@ if [[ "$action" != onboard ]]; then
     organ_emit_error "$action" '' '' ONBOARD_REQUIRED 'run organ onboard from this project root before using Organoun'
     exit 64
   fi
-  if [[ "$action" != init ]] && ! organ_control_owner_live >/dev/null; then
+  if [[ "$action" != init && "$action" != reset-owner ]] && ! organ_control_owner_live >/dev/null; then
     organ_emit_error "$action" '' local INITIALIZATION_REQUIRED 'run organ init --json from the visible owner pane before using Organoun'
     exit 64
   fi
@@ -151,6 +151,10 @@ case "$action" in
   init)
     [[ "$#" -eq 1 && "$1" == "--json" ]] || organ_usage_error "$action"
     organ_control_init "$ORGAN_DEPLOYMENT_DIGEST"
+    ;;
+  reset-owner)
+    [[ "$#" -eq 1 && "$1" == "--json" ]] || organ_usage_error "$action"
+    organ_control_owner_reset
     ;;
   reserve)
     [[ "$#" -eq 2 && "$2" == "--json" ]] || organ_usage_error "$action"

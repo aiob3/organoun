@@ -36,6 +36,7 @@ combine nem pule etapas:
    `danger-full-access` como atalho.
 5. Resolva a raiz Git canônica corrente e execute `"$HOME/.local/bin/organ" init --json` no pane local visível. O Codex nunca executa `organ onboard`, nunca coleta raiz, host ou CWD e nunca interage com o diálogo de onboarding.
 6. Se `init` retornar `ONBOARD_REQUIRED`, instrua o operador a sair do Codex. No mesmo tmux owner visível e na raiz do projeto, ele executa `"$HOME/.local/bin/organ" onboard`, informa diretamente no terminal apenas o host/alias SSH sem `usuario@` e o CWD remoto, aguarda `state=connected` e então retoma com `codex --profile organoun`. Pare. Não execute `onboard` ou repita `init` nessa interação.
+6a. Se `init` retornar `CONTROLLER_OWNERSHIP_MISMATCH`, a Sessão Proprietária pertence a uma sessão tmux anterior — normalmente porque ela foi fechada e outra foi aberta. Instrua o operador a sair do Codex e, no shell visível da sessão tmux atual, executar `"$HOME/.local/bin/organ" reset-owner --json`. Esse comando só libera a posse depois de confirmar que a sessão tmux antiga não existe mais; se ela ainda existir, ele recusa e o pedido deve voltar ao operador sem repetição. Após o reset bem-sucedido, o operador retoma com `codex --profile organoun`. Pare; não execute `reset-owner` nem `init` repetidamente por conta própria.
 7. Somente após recibo `state=initialized`, responda exatamente:
    `Organoun ativo nesta sessão. O que vamos criar hoje?` e devolva o controle.
 
