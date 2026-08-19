@@ -92,7 +92,7 @@ organ_artifact_fetch() {
     exec {artifact_fd}>&-
     return 68
   fi
-  file_type="$(stat -Lc '%F' -- "$fd_path" 2>/dev/null)" || {
+  file_type="$(LC_ALL=C stat -Lc '%F' -- "$fd_path" 2>/dev/null)" || {
     exec {artifact_fd}>&-
     return 68
   }

@@ -60,7 +60,7 @@ organ_json_normalize_strict() (
   normalized_stage="$validation_dir/normalized"
 
   exec {input_fd}<"$input_file" || return 64
-  [[ "$(stat -Lc '%F' -- "/proc/$BASHPID/fd/$input_fd" 2>/dev/null)" == 'regular file' ]] || return 64
+  [[ "$(LC_ALL=C stat -Lc '%F' -- "/proc/$BASHPID/fd/$input_fd" 2>/dev/null)" == 'regular file' ]] || return 64
   head -c 1048577 <&"$input_fd" >"$source_snapshot" || return 64
   exec {input_fd}<&-
   source_bytes="$(wc -c <"$source_snapshot")" || return 64
