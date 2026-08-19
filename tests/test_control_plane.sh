@@ -48,7 +48,7 @@ assert_jq "$output" '
   .schema_version == "1"
   and .ok == true
   and .action == "init"
-  and .state == "ready"
+  and .state == "initialized"
   and .delivery == "not-applicable"
   and (.data.owner_id | test("^owner-[0-9a-f]{16}$"))
   and .data.session_id == "$1"

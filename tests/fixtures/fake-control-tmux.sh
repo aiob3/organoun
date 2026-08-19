@@ -90,6 +90,22 @@ case "${1:-}" in
       .output
     ' "$state_file"
     ;;
+  has-session)
+    target=''
+    previous=''
+    for argument in "$@"; do
+      if [[ "$previous" == -t ]]; then
+        target="$argument"
+        break
+      fi
+      previous="$argument"
+    done
+    current_session="$(jq -r '.session_id' "$state_file")"
+    [[ "$target" == "$current_session" ]] || {
+      printf "can't find session: %s\n" "$target" >&2
+      exit 1
+    }
+    ;;
   kill-pane)
     target=''
     previous=''
